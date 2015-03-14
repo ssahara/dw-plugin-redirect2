@@ -1,0 +1,9 @@
+====== Redirect Configuration ======
+
+Use the following format:
+
+<code text>
+pagename      ns:page#headline     # redirect to the anchor in other page
+ns:somepage   http://example.com   # redirect to external url
+%ns1:(.*)%    ns2:$1               # (RedirectMatch) based on a regular expression match
+</code>

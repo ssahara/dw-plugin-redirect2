@@ -1,0 +1,7 @@
+base   redirect2
+name   Redirect manager
+author Satoshi Sahara
+email  sahara.satoshi@gmail.com
+date   2015-03-14
+desc   DokuWiki Redirect manager
+url    https://github.com/ssahara/dw-plugin-redirect2
