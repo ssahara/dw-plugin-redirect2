@@ -65,7 +65,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                     msg(sprintf($this->getLang('redirected'), hsc($ID)));
                 }
                 $link = explode('#', $this->redirectPages[$ID], 2);
-                send_redirect(wl($link[0] ,'',true) . '#' . rawurlencode($link[1]));
+                $url = wl($link[0] ,'',true);
+                if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
+                send_redirect($url);
             }
             exit;
         }
