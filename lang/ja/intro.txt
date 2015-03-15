@@ -14,4 +14,3 @@ pagename      ns:page#headline     # 別ページの特定の見出しに転送�
 ns:somepage   http://example.com   # 外部サイトにリダイレクト
 %ns1:(.*)%    ns2:$1               # (RedirectMatch) 正規表現での指定
 </code>
-S
