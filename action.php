@@ -42,6 +42,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     function register(Doku_Event_Handler $controller) {
         $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, '_redirect_simple');
         $controller->register_hook('ACTION_HEADERS_SEND', 'BEFORE', $this, '_redirect_match');
+        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, '_errorDocument404');
     }
 
 
@@ -114,5 +115,24 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             exit;
         }
     }
+
+
+    /*
+     * ErrorDocument404 - not found response
+     */
+     function _errorDocument404(&$event, $param) {
+         global $ACT, $INFO, $ID;
+
+         if ( $INFO['exists'] || ($ACT != 'show') ) return false;
+         $page = $this->getConf('404page');
+         if (empty($page)) return false;
+
+         $event->stopPropagation();
+         $event->preventDefault();
+
+         echo p_wiki_xhtml($this->getConf('404page'), false);
+         return true;
+     }
+
 
 }
