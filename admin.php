@@ -7,7 +7,11 @@ require_once(DOKU_PLUGIN.'admin.php');
 
 class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
-    protected $ConfFile = 'redirect.conf';
+    protected $ConfFile; // path/to/redirection config file
+
+    function __construct() {
+        $this->ConfFile = DOKU_CONF.'redirect.conf';
+    }
 
     /**
      * Access for managers allowed
@@ -29,7 +33,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
      */
     function handle() {
         if ($_POST['redirdata']) {
-            if (io_saveFile(dirname(__FILE__).'/'.$this->ConfFile, cleanText($_POST['redirdata']))) {
+            if (io_saveFile($this->ConfFile, cleanText($_POST['redirdata']))) {
                 msg($this->getLang('saved'), 1);
             }
         }
@@ -45,7 +49,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo '<input type="hidden" name="do" value="admin" />';
         echo '<input type="hidden" name="page" value="'.$this->getPluginName().'" />';
         echo '<textarea class="edit" rows="15" cols="80" style="height: 300px" name="redirdata">';
-        echo formtext(io_readFile(dirname(__FILE__).'/'.$this->ConfFile));
+        echo formtext(io_readFile($this->ConfFile));
         echo '</textarea><br />';
         echo '<input type="submit" value="'.$lang['btn_save'].'" class="button" />';
         echo '</form>';

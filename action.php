@@ -11,13 +11,12 @@ require_once(DOKU_PLUGIN.'action.php');
  
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
-    protected $ConfFile = 'redirect.conf';
+    protected $ConfFile; // path/to/redirection config file
     protected $redirectPages = array();
     protected $redirectURLs  = array();
 
     function __construct() {
-        // Look for the redirect file in plugin directory
-        $this->ConfFile = dirname(__FILE__) .'/'. $this->ConfFile;
+        $this->ConfFile = DOKU_CONF.'redirect.conf';
 
         $lines = @file($this->ConfFile);
         foreach ($lines as $line) {
@@ -82,7 +81,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if ( !($ACT == 'notfound' || $ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
         // 
-        if (strpos($_SERVER["REQUEST_URI"], '?') === false) {
+        if (strpos($_SERVER['REQUEST_URI'], '?') === false) {
             $checkID = $_SERVER['REQUEST_URI'];
         } else {
             $checkID = substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?'));
