@@ -12,8 +12,8 @@ require_once(DOKU_PLUGIN.'action.php');
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     protected $ConfFile; // path/to/redirection config file
-    protected $redirectPages = array();
-    protected $redirectURLs  = array();
+    protected $redirect = array();
+    protected $pattern = array();
 
     function __construct() {
         $this->ConfFile = DOKU_CONF.'redirect.conf';
@@ -26,13 +26,35 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             $line = trim($line);
             if (empty($line)) continue;
 
-            $token = preg_split('/\s+/', $line, 2);
-            if (preg_match('/^%.*%$/', $token[0])) {
-                // 正規表現を指定した場合
-                $this->redirectURLs[$token[0]] = $token[1];
-            } else {
-                // ページ名
-                $this->redirectPages[$token[0]] = $token[1];
+            $token = preg_split('/\s+/', $line, 3);
+            if (count($token) == 3) {
+                // status  %regex%  url
+                if (preg_match('/^%.*%$/', $token[1])) {
+                    // 正規表現を指定した場合
+                    $this->pattern[$token[1]] = array(
+                            'replacement' => $token[2],
+                            'status'      => $token[0],
+                    );
+                } else {
+                    $this->redirect[$token[1]] = array(
+                            'destination' => $token[2],
+                            'status'      => $token[0],
+                    );
+                }
+            } elseif (count($token) == 2) {
+                // %regex%  url
+                if (preg_match('/^%.*%$/', $token[0])) {
+                    // 正規表現を指定した場合
+                    $this->pattern[$token[0]] = array(
+                            'replacement' => $token[1],
+                            'status'      => 302,
+                    );
+                } else {
+                    $this->redirect[$token[0]] = array(
+                            'destination' => $token[1],
+                            'status'      => 302,
+                    );
+                }
             }
         }
     }
@@ -50,27 +72,39 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Redirect - based on simple prefix match of the current pagename
      */
     public function _redirect_simple(&$event, $param){
-        global $ID, $ACT;
+        global $INFO, $ID, $ACT;
 
         if ($ACT != 'show') return;
 
         // return if redirection is temporarily disabled by url paramter
         if (isset($_GET['redirect']) && $_GET['redirect'] == 'no') return;
 
-        if ($this->redirectPages[$ID]) {
-            if (preg_match('/^https?:\/\//', $this->redirectPages[$ID])) {
-                send_redirect($this->redirectPages[$ID]);
-            } else {
-                if ($this->getConf('showmsg')) {
-                    msg(sprintf($this->getLang('redirected'), hsc($ID)));
+        $checkID = $ID;
+        do {
+            if (isset($this->redirect[$checkID])) {
+                if (preg_match('/^https?:\/\//', $this->redirect[$checkID]['destination'])) {
+                    http_status($this->redirect[$checkID]['status']);
+                    send_redirect($this->redirect[$checkID]['destination']);
+                } else {
+                    if ($this->getConf('show_msg')) {
+                        $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+                        $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+                        msg(sprintf($this->getLang('redirected_from'), 
+                            '<a href="'.wl($ID, array('redirect' => 'no'), TRUE, '&').
+                            '" class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
+                    }
+                    $link = explode('#', $this->redirect[$checkID]['destination'], 2);
+                    $url = wl($link[0] ,'',true);
+                    if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
+                    http_status($this->redirect[$checkID]['status']);
+                    send_redirect($url);
                 }
-                $link = explode('#', $this->redirectPages[$ID], 2);
-                $url = wl($link[0] ,'',true);
-                if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
-                send_redirect($url);
+                exit;
             }
-            exit;
-        }
+            
+            // check prefix hierarchic namespace replacement
+            $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
+        } while ($checkID != false);
     }
 
 
@@ -91,7 +125,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         }
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
-        $url = preg_replace( array_keys($this->redirectURLs), array_values($this->redirectURLs), strtolower($checkID));
+        foreach ($this->pattern as $pattern => $data) {
+            $url = preg_replace( $pattern, $data['replacement'], strtolower($checkID), -1, $count);
+            if ($count > 0) {
+                $status = $data['status'];
+                break;
+            }
+        }
+
         if ( substr($url , -1)  == '/' ) $url .= $conf['start'];
         
         if ( $url == strtolower($checkID) ) return;
@@ -113,6 +154,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         }
 
         if ( $url != $_SERVER['REQUEST_URI'] ) {
+            if ($this->getConf('show_msg')) {
+                    msg(sprintf($this->getLang('redirected'), hsc($checkID)));
+            }
+            http_status($status);
             send_redirect($url);
             exit;
         }
