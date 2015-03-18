@@ -66,7 +66,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Redirection
      */
     public function redirect(&$event, $param){
-        global $ACT, $ID, $INFO;
+        global $ACT, $ID, $INFO, $conf;
 
         if ($ACT != 'show') return;
 
@@ -113,15 +113,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if ( $INFO['exists'] ) return;
         if ( !($ACT == 'notfound' || $ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
-        // 
-        if (strpos($_SERVER['REQUEST_URI'], '?') === false) {
-            $checkID = $_SERVER['REQUEST_URI'];
-        } else {
-            $checkID = substr($_SERVER['REQUEST_URI'], 0, strpos($_SERVER['REQUEST_URI'], '?'));
-        }
+        list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'],2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
         foreach ($this->pattern as $pattern => $data) {
+            if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
             $url = preg_replace( $pattern, $data['replacement'], strtolower($checkID), -1, $count);
             if ($count > 0) {
                 $status = $data['status'];
@@ -130,22 +126,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         }
         if ( substr($url , -1)  == '/' ) $url .= $conf['start'];
 
-        if ( $url == strtolower($checkID) ) return;
-
-
-        if ( !empty($_GET) ) {
-            unset($_GET['id']);
-            $params = '';
-            foreach( $_GET as $key => $value ) {
-                if ( !empty($params) ) { $params .= '&'; }
-                $params .= urlencode($key).'='.urlencode($value);
-            }
-            if ( !empty($params) ) { $url .= '?'.$params; }
-        }
+        if (!empty($rest)) $url .= '?'.$rest;
 
         if ( $url != $_SERVER['REQUEST_URI'] ) {
             if ($this->getConf('show_msg')) {
-                    msg(sprintf($this->getLang('redirected'), hsc($checkID)));
+                    msg(sprintf($this->getLang('redirected_from'), hsc($checkID)));
             }
             http_status($status);
             send_redirect($url);
