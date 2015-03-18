@@ -19,6 +19,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $this->ConfFile = DOKU_CONF.'redirect.conf';
 
         $lines = @file($this->ConfFile);
+        if (!$lines) return;
         foreach ($lines as $line) {
             if (preg_match('/^#/',$line)) continue;     // 行頭#はコメント行
             $line = str_replace('\\#','#', $line);      // #をエスケープしている場合は戻す
@@ -29,30 +30,24 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             $token = preg_split('/\s+/', $line, 3);
             if (count($token) == 3) {
                 // status  %regex%  url
-                if (preg_match('/^%.*%$/', $token[1])) {
-                    // 正規表現を指定した場合
+                if (preg_match('/^%.*%$/', $token[1])) { // 正規表現を指定した場合
                     $this->pattern[$token[1]] = array(
-                            'replacement' => $token[2],
-                            'status'      => $token[0],
+                            'replacement' => $token[2], 'status' => $token[0],
                     );
                 } else {
                     $this->redirect[$token[1]] = array(
-                            'destination' => $token[2],
-                            'status'      => $token[0],
+                            'destination' => $token[2], 'status' => $token[0],
                     );
                 }
             } elseif (count($token) == 2) {
                 // %regex%  url
-                if (preg_match('/^%.*%$/', $token[0])) {
-                    // 正規表現を指定した場合
+                if (preg_match('/^%.*%$/', $token[0])) { // 正規表現を指定した場合
                     $this->pattern[$token[0]] = array(
-                            'replacement' => $token[1],
-                            'status'      => 302,
+                            'replacement' => $token[1], 'status' => 302,
                     );
                 } else {
                     $this->redirect[$token[0]] = array(
-                            'destination' => $token[1],
-                            'status'      => 302,
+                            'destination' => $token[1], 'status' => 302,
                     );
                 }
             }
@@ -62,23 +57,26 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     function register(Doku_Event_Handler $controller) {
-        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, '_redirect_simple');
-        $controller->register_hook('ACTION_HEADERS_SEND', 'BEFORE', $this, '_redirect_match');
-        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, '_errorDocument404');
+        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirect');
+        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
     }
 
 
     /*
-     * Redirect - based on simple prefix match of the current pagename
+     * Redirection
      */
-    public function _redirect_simple(&$event, $param){
-        global $INFO, $ID, $ACT;
+    public function redirect(&$event, $param){
+        global $ACT, $ID, $INFO;
 
         if ($ACT != 'show') return;
 
         // return if redirection is temporarily disabled by url paramter
         if (isset($_GET['redirect']) && $_GET['redirect'] == 'no') return;
 
+        /*
+         * Redirect based on simple prefix match of the current pagename
+         * (Redirect Directives)
+         */
         $checkID = $ID;
         do {
             if (isset($this->redirect[$checkID])) {
@@ -105,15 +103,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             // check prefix hierarchic namespace replacement
             $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
         } while ($checkID != false);
-    }
 
+        /*
+         * Redirect based on a regular expression match of the current URL
+         * (RedirectMatch Directives)
+         */
 
-    /*
-     * RedirectMatch - based on a regular expression match of the current URL
-     */
-    function _redirect_match(&$event, $param) {
-        global $INFO, $ACT, $conf, $ID;
-
+        if ( empty($this->pattern)) return;
         if ( $INFO['exists'] ) return;
         if ( !($ACT == 'notfound' || $ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
@@ -132,16 +128,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 break;
             }
         }
-
         if ( substr($url , -1)  == '/' ) $url .= $conf['start'];
-        
+
         if ( $url == strtolower($checkID) ) return;
-        
-        # referer must be set - and its not a bot.
-        if ( $this->getConf('doLog') && !empty($_SERVER['HTTP_REFERER']) 
-          && !preg_match('/(?i)bot/', $_SERVER['HTTP_USER_AGENT'])) {
-            dbglog("Redirecting: '{$checkID}' to '{$url}'");
-        }
+
 
         if ( !empty($_GET) ) {
             unset($_GET['id']);
@@ -161,14 +151,15 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             send_redirect($url);
             exit;
         }
+        
     }
 
 
     /*
      * ErrorDocument404 - not found response
      */
-     function _errorDocument404(&$event, $param) {
-         global $ACT, $INFO, $ID;
+     function errorDocument404(&$event, $param) {
+        global $ACT, $ID, $INFO;
 
          if ( $INFO['exists'] || ($ACT != 'show') ) return false;
          $page = $this->getConf('404page');
