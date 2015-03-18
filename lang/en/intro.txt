@@ -1,8 +1,19 @@
 ====== Redirect Configuration ======
 
-Use the following format:
+**RedirectPage** ...
+Map old page to new one. Both of //old-pagename// and //new-pagename// must be 
+absolute and cleaned (no specialchars, all lowercase, full namespaces).
+The //new-pagename// may contain anchor hash (#).
+
+**RedirectMatch** ...
+Redirection using a regular expression used (instead of simple prefix matching) 
+if the first field enclosed in '%' marks. The supplied regular expression is 
+matched against the URL-path, and if it matches, 
+this plugin will substitute any parenthesized matches into the given string
+and use it as a new URL-path.
 
 <code text>
+# Example:
 pagename      ns:page#headline     # redirect to the anchor in other page
 ns:somepage   http://example.com   # redirect to external url
 %ns1:(.*)%    ns2:$1               # (RedirectMatch) based on a regular expression match
