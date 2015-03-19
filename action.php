@@ -73,9 +73,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                     if ($this->getConf('show_msg')) {
                         $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
                         $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
-                        msg(sprintf($this->getLang('redirected_from'), 
-                            '<a href="'.wl($ID, array('redirect' => 'no'), TRUE, '&').
-                            '" class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
+                        msg(sprintf($this->getLang('redirected_from'), '<a href="'.
+                            wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
+                            ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                     }
                     $link = explode('#', $this->pattern[$checkID]['destination'], 2);
                     $url = wl($link[0] ,'',true);
@@ -110,7 +110,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
         if (strcasecmp($url, $_SERVER['REQUEST_URI']) != 0) {
             if ($this->getConf('show_msg')) {
-                    msg(sprintf($this->getLang('redirected_from'), hsc($checkID)));
+                msg(sprintf($this->getLang('redirected_from'), '<a href="'.
+                    $checkID.'?redirect=no'.'" rel="nofollow">'.hsc($checkID).'</a>'), 0);
             }
             http_status($status);
             send_redirect($url);
