@@ -94,23 +94,21 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on a regular expression match of the current URL
          * (RedirectMatch Directives)
          */
-        if ( $INFO['exists'] ) return;
-
         list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'],2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
         foreach ($this->pattern as $pattern => $data) {
             if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
-            $url = preg_replace( $pattern, $data['destination'], strtolower($checkID), -1, $count);            if ($count > 0) {
+            $url = preg_replace( $pattern, $data['destination'], strtolower($checkID), -1, $count);
+            if ($count > 0) {
                 $status = $data['status'];
                 break;
             }
         }
-        if ( substr($url , -1)  == '/' ) $url .= $conf['start'];
+        $url.= (substr($url, -1) == '/') ? $conf['start'] : '';
+        $url.= (!empty($rest)) ? '?'.$rest : '';
 
-        if (!empty($rest)) $url .= '?'.$rest;
-
-        if ( $url != $_SERVER['REQUEST_URI'] ) {
+        if (strcasecmp($url, $_SERVER['REQUEST_URI']) != 0) {
             if ($this->getConf('show_msg')) {
                     msg(sprintf($this->getLang('redirected_from'), hsc($checkID)));
             }
