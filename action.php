@@ -94,7 +94,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on a regular expression match of the current URL
          * (RedirectMatch Directives)
          */
-        list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'],2);
+        list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'], 2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
         foreach ($this->pattern as $pattern => $data) {
@@ -123,6 +123,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     /*
      * ErrorDocument404 - not found response
+     * show 404 wiki page instead of inc/lang/<iso>/newpage.txt
      */
      function errorDocument404(&$event, $param) {
         global $ACT, $ID, $INFO;
