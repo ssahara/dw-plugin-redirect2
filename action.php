@@ -12,7 +12,6 @@ require_once(DOKU_PLUGIN.'action.php');
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     protected $ConfFile; // path/to/redirection config file
-    protected $redirect = array();
     protected $pattern = array();
 
     function __construct() {
@@ -28,28 +27,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (empty($line)) continue;
 
             $token = preg_split('/\s+/', $line, 3);
-            if (count($token) == 3) {
-                // status  %regex%  url
-                if (preg_match('/^%.*%$/', $token[1])) { // 正規表現を指定した場合
-                    $this->pattern[$token[1]] = array(
-                            'replacement' => $token[2], 'status' => $token[0],
-                    );
-                } else {
-                    $this->redirect[$token[1]] = array(
-                            'destination' => $token[2], 'status' => $token[0],
-                    );
-                }
-            } elseif (count($token) == 2) {
-                // %regex%  url
-                if (preg_match('/^%.*%$/', $token[0])) { // 正規表現を指定した場合
-                    $this->pattern[$token[0]] = array(
-                            'replacement' => $token[1], 'status' => 302,
-                    );
-                } else {
-                    $this->redirect[$token[0]] = array(
-                            'destination' => $token[1], 'status' => 302,
-                    );
-                }
+            if (count($token) == 3) { // status  %regex%  url
+                $this->pattern[$token[1]] = array(
+                        'destination' => $token[2], 'status' => $token[0],
+                );
+            } elseif (count($token) == 2) { // %regex%  url
+                $this->pattern[$token[0]] = array(
+                        'destination' => $token[1], 'status' => 302,
+                );
             }
         }
     }
@@ -68,7 +53,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     public function redirect(&$event, $param){
         global $ACT, $ID, $INFO, $conf;
 
-        if ($ACT != 'show') return;
+        if (empty($this->pattern)) return;
+        if ( !($ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
         // return if redirection is temporarily disabled by url paramter
         if (isset($_GET['redirect']) && $_GET['redirect'] == 'no') return;
@@ -79,10 +65,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          */
         $checkID = $ID;
         do {
-            if (isset($this->redirect[$checkID])) {
-                if (preg_match('/^https?:\/\//', $this->redirect[$checkID]['destination'])) {
-                    http_status($this->redirect[$checkID]['status']);
-                    send_redirect($this->redirect[$checkID]['destination']);
+            if (isset($this->pattern[$checkID])) {
+                if (preg_match('/^https?:\/\//', $this->pattern[$checkID]['destination'])) {
+                    http_status($this->pattern[$checkID]['status']);
+                    send_redirect($this->pattern[$checkID]['destination']);
                 } else {
                     if ($this->getConf('show_msg')) {
                         $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
@@ -91,10 +77,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                             '<a href="'.wl($ID, array('redirect' => 'no'), TRUE, '&').
                             '" class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                     }
-                    $link = explode('#', $this->redirect[$checkID]['destination'], 2);
+                    $link = explode('#', $this->pattern[$checkID]['destination'], 2);
                     $url = wl($link[0] ,'',true);
                     if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
-                    http_status($this->redirect[$checkID]['status']);
+                    http_status($this->pattern[$checkID]['status']);
                     send_redirect($url);
                 }
                 exit;
@@ -108,18 +94,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on a regular expression match of the current URL
          * (RedirectMatch Directives)
          */
-
-        if ( empty($this->pattern)) return;
         if ( $INFO['exists'] ) return;
-        if ( !($ACT == 'notfound' || $ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
         list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'],2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
         foreach ($this->pattern as $pattern => $data) {
             if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
-            $url = preg_replace( $pattern, $data['replacement'], strtolower($checkID), -1, $count);
-            if ($count > 0) {
+            $url = preg_replace( $pattern, $data['destination'], strtolower($checkID), -1, $count);            if ($count > 0) {
                 $status = $data['status'];
                 break;
             }
