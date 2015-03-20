@@ -97,6 +97,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'], 2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
 
+        $url ='';
         foreach ($this->pattern as $pattern => $data) {
             if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
             $url = preg_replace( $pattern, $data['destination'], strtolower($checkID), -1, $count);
@@ -105,6 +106,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 break;
             }
         }
+        if (empty($url)) return;
         $url.= (substr($url, -1) == '/') ? $conf['start'] : '';
         $url.= (!empty($rest)) ? '?'.$rest : '';
 
