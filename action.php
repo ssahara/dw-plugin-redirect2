@@ -40,7 +40,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     }
 
 
-
+    /**
+     * Register event handlers
+     */
     function register(Doku_Event_Handler $controller) {
         $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirect');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
@@ -51,13 +53,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Redirection
      */
     public function redirect(&$event, $param){
-        global $ACT, $ID, $INFO, $conf;
+        global $ACT, $ID, $INFO, $INPUT, $conf;
 
         if (empty($this->pattern)) return;
         if ( !($ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
 
         // return if redirection is temporarily disabled by url paramter
-        if (isset($_GET['redirect']) && $_GET['redirect'] == 'no') return;
+        if ($INPUT->str('redirect',null) == 'no') return;
 
         /*
          * Redirect based on simple prefix match of the current pagename
