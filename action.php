@@ -132,7 +132,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             send_redirect($url);
             exit;
         }
-        
     }
 
 
@@ -185,10 +184,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 }
                 break; // Redirect will happen at lib/exe/fetch.php
             }
-            
             // check prefix hierarchic namespace replacement
+            // ルート名前空間のメディアは"::"始まりで指定するか?
             $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
          } while ($checkID != false);
-
      }
 }
