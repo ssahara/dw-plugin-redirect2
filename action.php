@@ -44,19 +44,19 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Register event handlers
      */
     function register(Doku_Event_Handler $controller) {
-        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirect');
+        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
     }
 
 
     /*
-     * Redirection
+     * Redirection of pages
      */
-    public function redirect(&$event, $param){
+    function redirectPage(&$event, $param){
         global $ACT, $ID, $INFO, $INPUT, $conf;
 
         if (empty($this->pattern)) return;
-        if ( !($ACT == 'show' || substr($ACT,0,7) == 'export_') ) return;
+        if( !($ACT == 'show' || (!is_array($ACT) && substr($ACT, 0, 7) == 'export_')) ) return;
 
         // return if redirection is temporarily disabled by url paramter
         if ($INPUT->str('redirect',null) == 'no') return;
@@ -64,13 +64,19 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         /*
          * Redirect based on simple prefix match of the current pagename
          * (Redirect Directives)
+         * ページをConfファイルで指定する場合は、":"で始めてはならない。
+         * ":"で始まる場合は メディアファイルの指定と見なすため。
          */
+        $leaf = noNS($ID); // end token of the pageID
         $checkID = $ID;
         do {
             if (isset($this->pattern[$checkID])) {
                 if (preg_match('/^https?:\/\//', $this->pattern[$checkID]['destination'])) {
+                    $url = $this->pattern[$checkID]['destination'];
+                    // リダイレクト先の末尾が"/"の場合、$leafを付加する。
+                    if (substr($url,-1)=='/') $url.= $leaf;
                     http_status($this->pattern[$checkID]['status']);
-                    send_redirect($this->pattern[$checkID]['destination']);
+                    send_redirect($url);
                 } else {
                     if ($this->getConf('show_msg')) {
                         $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
@@ -80,6 +86,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                             ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                     }
                     $link = explode('#', $this->pattern[$checkID]['destination'], 2);
+                    // リダイレクト先の末尾が":"の場合、$leafを付加する。
+                    if (substr($link[0],-1) == ':') $link[0].= $leaf;
                     $url = wl($link[0] ,'',true);
                     if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
                     http_status($this->pattern[$checkID]['status']);
@@ -89,12 +97,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             }
             
             // check prefix hierarchic namespace replacement
+            // ルート名前空間もリダイレクト可能なはず
             $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
         } while ($checkID != false);
 
         /*
          * Redirect based on a regular expression match of the current URL
          * (RedirectMatch Directives)
+         * ★再考する。URLではなく、IDでチェックするほうが良いかも。
          */
         list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'], 2);
         if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
@@ -142,6 +152,5 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          echo p_wiki_xhtml($this->getConf('404page'), false);
          return true;
      }
-
 
 }
