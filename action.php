@@ -99,7 +99,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             
             // check prefix hierarchic namespace replacement
             // ルート名前空間もリダイレクト可能なはず
-            $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
+            $checkID = ($checkID == ':') ? false : getNS(rtrim($checkID,':')).':';
         } while ($checkID != false);
 
         /*
@@ -185,8 +185,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 break; // Redirect will happen at lib/exe/fetch.php
             }
             // check prefix hierarchic namespace replacement
-            // ルート名前空間のメディアは"::"始まりで指定するか?
-            $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
-         } while ($checkID != false);
-     }
+            // ルート名前空間のメディア全体は"::"始まりで指定する
+            $checkID = ($checkID == '::') ? false : ':'.getNS(trim($checkID,':')).':';
+        } while ($checkID != false);
+    }
 }
