@@ -46,6 +46,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     function register(Doku_Event_Handler $controller) {
         $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
+        $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
     }
 
 
@@ -153,4 +154,41 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          return true;
      }
 
+
+    /*
+     * Media Redirect
+     * FETCH_MEDIA_STATUS event handler
+     * https://www.dokuwiki.org/devel:event:fetch_media_status
+     *
+     * メディアファイルをConfファイルで指定する場合は必ず":"で始めること。
+     */
+    function redirectMedia(&$event, $param) {
+        $checkID = $event->data['media'];
+        $leaf = noNS($checkID); // end token of the mediaID
+        $checkID = (substr($checkID,0,1)!=':') ? ':'.$checkID : $checkID;
+        do {
+            if (isset($this->pattern[$checkID])) {
+                if (preg_match('/^https?:\/\//', $this->pattern[$checkID]['destination'])) {
+                    $url = $this->pattern[$checkID]['destination'];
+                    // リダイレクト先の末尾が"/"の場合、$leafを付加する。
+                    if (substr($url,-1)=='/') $url.= $leaf;
+                    $event->data['status'] = $this->pattern[$checkID]['status'];
+                    $event->data['statusmessage'] = $url;
+                } else {
+                    $newID = $this->pattern[$checkID]['destination'];
+                    // リダイレクト先の末尾が":"の場合、$leafを付加する。
+                    if (substr($newID,-1) == ':') $newID.= $leaf;
+                    error_log('mediaRedirect: '.$checkID.' ->'. $newID);
+                    $url = ml($newID,'',true);
+                    $event->data['status'] = $this->pattern[$checkID]['status'];
+                    $event->data['statusmessage'] = $url; 
+                }
+                break; // Redirect will happen at lib/exe/fetch.php
+            }
+            
+            // check prefix hierarchic namespace replacement
+            $checkID = ($checkID !=':') ? getNS(rtrim($checkID,':')).':' : false;
+         } while ($checkID != false);
+
+     }
 }
