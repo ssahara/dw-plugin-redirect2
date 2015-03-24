@@ -196,12 +196,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     /**
      * Show message to inform user redirection
-     *
-     * タイトル取得に page title プラグインを考慮するように改造予定
      */
     protected function _show_message() {
         global $ID, $INFO;
-        $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+        $title = hsc(p_get_metadata($ID, 'title'));
+        if (empty($title)) {
+            $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+        }
         $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
         msg(sprintf($this->getLang('redirected_from'), '<a href="'.
                     wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
