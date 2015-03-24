@@ -3,6 +3,7 @@
  * Redirect2 - DokuWiki Redirect Manager
  * 
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
  */
  
 if(!defined('DOKU_INC')) die();
@@ -14,24 +15,70 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     protected $ConfFile; // path/to/redirection config file
     protected $pattern = array();
 
+    /**
+     * Register event handlers
+     */
+    function register(Doku_Event_Handler $controller) {
+        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
+        $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
+        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
+    }
+
+
+    /**
+     * ErrorDocument404 - not found response
+     * show 404 wiki page instead of inc/lang/<iso>/newpage.txt
+     */
+     function errorDocument404(&$event, $param) {
+        global $ACT, $ID, $INFO;
+
+         if ( $INFO['exists'] || ($ACT != 'show') ) return false;
+         $page = $this->getConf('404page');
+         if (empty($page)) return false;
+
+         $event->stopPropagation();
+         $event->preventDefault();
+
+         echo p_wiki_xhtml($this->getConf('404page'), false);
+         return true;
+     }
+
+
+    /**
+     * Setup the redirection map from config file
+     *
+     * config file のフォーマット
+     *
+     *  [status]   ptnSearch   ptnDestination
+     *
+     * A) 正規表現を使用しないリダイレクト指定では...
+     *   1) ページを指定する場合は、":"で始めてはならない。
+     *      ":"で始まる場合は メディアファイルの指定と見なすため。
+     *   2) メディアファイルを指定する場合は必ず":"で始めること。
+     *
+     * B) 正規表現を使用したリダイレクト指定では...
+     *   1) Search パターンは "%" で囲むこと
+     *   2) メディアファイルは、拡張子を含むように指定すること
+     *
+     */
     function __construct() {
         $this->ConfFile = DOKU_CONF.'redirect.conf';
 
         $lines = @file($this->ConfFile);
         if (!$lines) return;
         foreach ($lines as $line) {
-            if (preg_match('/^#/',$line)) continue;     // 行頭#はコメント行
-            $line = str_replace('\\#','#', $line);      // #をエスケープしている場合は戻す
-            $line = preg_replace('/\s#.*$/','', $line); // 空白後の#以降はコメントと見なして除去
+            if (preg_match('/^#/',$line)) continue;
+            $line = str_replace('\\#','#', $line);
+            $line = preg_replace('/\s#.*$/','', $line);
             $line = trim($line);
             if (empty($line)) continue;
 
             $token = preg_split('/\s+/', $line, 3);
-            if (count($token) == 3) { // status  %regex%  url
+            if (count($token) == 3) {
                 $this->pattern[$token[1]] = array(
                         'destination' => $token[2], 'status' => $token[0],
                 );
-            } elseif (count($token) == 2) { // %regex%  url
+            } elseif (count($token) == 2) {
                 $this->pattern[$token[0]] = array(
                         'destination' => $token[1], 'status' => 302,
                 );
@@ -41,16 +88,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     /**
-     * Register event handlers
-     */
-    function register(Doku_Event_Handler $controller) {
-        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
-        $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
-        $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
-    }
-
-
-    /*
      * Redirection of pages
      */
     function redirectPage(&$event, $param){
@@ -65,8 +102,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         /*
          * Redirect based on simple prefix match of the current page
          * (Redirect Directives)
-         * ページをConfファイルで指定する場合は、":"で始めてはならない。
-         * ":"で始まる場合は メディアファイルの指定と見なすため。
          */
         $leaf = noNS($ID); // end token of the pageID
         $checkID = $ID;
@@ -97,31 +132,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     }
 
 
-    /*
-     * ErrorDocument404 - not found response
-     * show 404 wiki page instead of inc/lang/<iso>/newpage.txt
-     */
-     function errorDocument404(&$event, $param) {
-        global $ACT, $ID, $INFO;
-
-         if ( $INFO['exists'] || ($ACT != 'show') ) return false;
-         $page = $this->getConf('404page');
-         if (empty($page)) return false;
-
-         $event->stopPropagation();
-         $event->preventDefault();
-
-         echo p_wiki_xhtml($this->getConf('404page'), false);
-         return true;
-     }
-
-
-    /*
+    /**
      * Redirect of media
      * FETCH_MEDIA_STATUS event handler
      * @see also https://www.dokuwiki.org/devel:event:fetch_media_status
-     *
-     * メディアファイルをConfファイルで指定する場合は必ず":"で始めること。
      */
     function redirectMedia(&$event, $param) {
         $checkID = $event->data['media'];
@@ -158,9 +172,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     }
 
 
-    /*
+    /**
      * Resolve destination page/media id by regular expression match
      * using rediraction pattern map config file
+     *
      * @param string $checkID  full and cleaned name of page or media
      *                         for the page, it must be clean id
      *                         for media, it must be clean with ':' prefixed
@@ -179,7 +194,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         return false;
     }
 
-    /*
+    /**
      * Show message to inform user redirection
      *
      * タイトル取得に page title プラグインを考慮するように改造予定
@@ -193,7 +208,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                     ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
     }
 
-    /*
+    /**
      * Build URL used in send_redirect()
      * 
      * @param string $id   id of the page or media of destination of redirect
