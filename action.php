@@ -86,11 +86,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                             wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
                             ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                     }
-                    $link = explode('#', $this->pattern[$checkID]['destination'], 2);
+                    list($paeg, $section) = explode('#', $this->pattern[$checkID]['destination'], 2);
                     // リダイレクト先の末尾が":"の場合、$leafを付加する。
-                    if (substr($link[0],-1) == ':') $link[0].= $leaf;
-                    $url = wl($link[0] ,'',true);
-                    if (!empty($link[1])) $url.= '#'.rawurlencode($link[1]);
+                    if (substr($page,-1) == ':') $page.= $leaf;
+                    $url = wl($page, '', true);
+                    if (!empty($section)) $url.= '#'.rawurlencode($section);
                     http_status($this->pattern[$checkID]['status']);
                     send_redirect($url);
                 }
