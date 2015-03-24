@@ -86,7 +86,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                             wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
                             ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                     }
-                    list($paeg, $section) = explode('#', $this->pattern[$checkID]['destination'], 2);
+                    list($page, $section) = explode('#', $this->pattern[$checkID]['destination'], 2);
                     // リダイレクト先の末尾が":"の場合、$leafを付加する。
                     if (substr($page,-1) == ':') $page.= $leaf;
                     $url = wl($page, '', true);
@@ -103,35 +103,33 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         } while ($checkID != false);
 
         /*
-         * Redirect based on a regular expression match of the current URL
+         * Redirect based on a regular expression match against the current pagename
          * (RedirectMatch Directives)
-         * ★再考する。URLではなく、IDでチェックするほうが良いかも。
          */
-        list($checkID, $rest) = explode('?',$_SERVER['REQUEST_URI'], 2);
-        if ( substr($checkID, 0, 1) != '/' ) $checkID = '/'.$checkID;
-
-        $url ='';
+        $checkID = $ID;
         foreach ($this->pattern as $pattern => $data) {
-            if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
-            $url = preg_replace( $pattern, $data['destination'], strtolower($checkID), -1, $count);
+            if (preg_match('/^%.*%$/', $pattern) !== 1) continue; // 正規表現以外はスルーする
+            $checkID = preg_replace( $pattern, $data['destination'], $checkID, -1, $count);
             if ($count > 0) {
                 $status = $data['status'];
                 break;
             }
         }
-        if (empty($url)) return;
-        $url.= (substr($url, -1) == '/') ? $conf['start'] : '';
-        $url.= (!empty($rest)) ? '?'.$rest : '';
+        if ($checkID == $ID) return;
 
-        if (strcasecmp($url, $_SERVER['REQUEST_URI']) != 0) {
-            if ($this->getConf('show_msg')) {
-                msg(sprintf($this->getLang('redirected_from'), '<a href="'.
-                    $checkID.'?redirect=no'.'" rel="nofollow">'.hsc($checkID).'</a>'), 0);
-            }
-            http_status($status);
-            send_redirect($url);
-            exit;
+        if ($this->getConf('show_msg')) {
+                        $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+                        $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+                        msg(sprintf($this->getLang('redirected_from'), '<a href="'.
+                            wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
+                            ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
         }
+        list($page, $section) = explode('#', $checkID, 2);
+        $url = wl($page, '', true);
+        if (!empty($section)) $url.= '#'.rawurlencode($section);
+        http_status($status);
+        send_redirect($url);
+        exit;
     }
 
 
@@ -188,5 +186,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             // ルート名前空間のメディア全体は"::"始まりで指定する
             $checkID = ($checkID == '::') ? false : ':'.getNS(trim($checkID,':')).':';
         } while ($checkID != false);
+        
+        // 正規表現ベースでのメディアファイルのリダイレクト
+        // Confファイルでの指定は、ページとメディア共通で良いか？
+        // 少なくとも、":"始まりの検索パターンを指定するのは面倒。
+        // メディアファイルは必ず拡張子がある（ページは拡張子なし）。
     }
 }
