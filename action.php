@@ -107,8 +107,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $checkID = $ID;
         do {
             if (isset($this->pattern[$checkID])) {
-                if ($this->getConf('show_msg')) $this->_show_message();
                 $url = $this->_buildURL( $this->pattern[$checkID]['destination'], $leaf);
+                if ($this->getConf('show_msg')) $this->_show_message();
+                if ($this->getConf('logging')) $this->_logRedirection($ID, $url);
                 http_status($this->pattern[$checkID]['status']);
                 send_redirect($url);
                 exit;
@@ -123,8 +124,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          */
         $redirect = $this->_RedirectMatch($ID);
         if ($redirect !== false) {
-            if ($this->getConf('show_msg')) $this->_show_message();
             $url = $this->_buildURL( $redirect['destination'], '');
+            if ($this->getConf('show_msg')) $this->_show_message();
+            if ($this->getConf('logging')) $this->_logRedirection($ID, $url);
             http_status($redirect['status']);
             send_redirect($url);
             exit;
@@ -150,6 +152,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         do {
             if (isset($this->pattern[$checkID])) {
                 $url = $this->_buildURL( $this->pattern[$checkID]['destination'], $leaf);
+                if ($this->getConf('logging')) $this->_logRedirection($event->data['media'], $url);
                 $event->data['status'] = $this->pattern[$checkID]['status'];
                 $event->data['statusmessage'] = $url;
                 return; // Redirect will happen at lib/exe/fetch.php
@@ -165,9 +168,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $redirect = $this->_RedirectMatch($event->data['media']);
         if ($redirect !== false) {
             $url = $this->_buildURL( $redirect['destination'],'');
+            if ($this->getConf('logging')) $this->_logRedirection($event->data['media'], $url);
             $event->data['status'] = $redirect['status'];
             $event->data['statusmessage'] = $url;
-            // Redirect will happen at lib/exe/fetch.php
+            return; // Redirect will happen at lib/exe/fetch.php
         }
     }
 
@@ -234,6 +238,17 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
            $url = ml($id, '', true);
         }
         return $url;
+    }
+
+    /**
+     * Logging of redirection
+     */
+    protected function _logRedirection($id, $url) {
+        global $conf;
+
+        $t = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
+        $s = $t."\t".'Redirect '.$id.' -> '.$url;
+        io_saveFile($conf['cachedir'].'/redirection.log', $s."\n", true);
     }
 
 }
