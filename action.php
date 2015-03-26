@@ -247,7 +247,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         global $conf;
 
         $t = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
-        $s = $t."\t".'Redirect '.$id.' -> '.$url;
+        $s = $t."\t".$id."\t".$url;
         io_saveFile($conf['cachedir'].'/redirection.log', $s."\n", true);
     }
 

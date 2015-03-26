@@ -8,9 +8,11 @@ require_once(DOKU_PLUGIN.'admin.php');
 class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
     protected $ConfFile; // path/to/redirection config file
+    protected $LogData;
 
     function __construct() {
         $this->ConfFile = DOKU_CONF.'redirect.conf';
+        $this->LogData = array();
     }
 
     /**
@@ -55,6 +57,60 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo '</textarea><br />';
         echo '<input type="submit" value="'.$lang['btn_save'].'" class="button" />';
         echo '</form>';
+
+        $this->loadLogData();
+/*
+        echo '<ol class="'.$this->getPluginName().'">';
+        foreach ($this->LogData as $id => $data) {
+            echo '<li>'.$id.' count='.$data['count'].' last happened: '.$data['last'].'</li>';
+        }
+        echo '</ol>';
+*/
+        echo '<br />';
+        echo '<br />';
+        echo '<table class="'.$this->getPluginName().'">';
+        foreach ($this->LogData as $id => $data) {
+            echo '<tr>';
+            echo '<td>'.$data['count'].'</td>';
+            echo '<td>'.$id.'</td>';
+            echo '<td>'.$data['last'].'</td>';
+            echo '<td>'.$data['redirect'].'</td>';
+            echo '</tr>';
+        }
+        echo '</table>';
+
+    }
+
+
+    /**
+     * Load log file
+     */
+    function loadLogData() {
+        global $conf;
+        
+        if (!file_exists($conf['cachedir'].'/redirection.log')) return;
+        
+        $logfile = new SplFileObject($conf['cachedir'].'/redirection.log');
+        $logfile->setFlags(SplFileObject::READ_CSV);
+        $logfile->setCsvControl("\t"); // tsv
+
+        foreach ($logfile as $line) {
+            if ($line[0] == Null) continue;
+            list($datetime, $id, $url) = $line;
+            if (!isset($this->LogData[$id])) {
+                $this->LogData[$id] = array('count' => 1, 'redirect' => $url, 'last' => $datetime);
+            } else {
+                $this->LogData[$id]['count'] ++;
+                if ($datetime > $this->LogData[$id]['last']) 
+                    $this->LogData[$id]['last'] = $datetime;
+            }
+        }
+        unset($logfile);
+        uasort($this->LogData, array($this, 'compareCounts'));
+    }
+
+    protected function compareCounts($a, $b) {
+        return $b['count'] - $a['count'];
     }
 
 }
