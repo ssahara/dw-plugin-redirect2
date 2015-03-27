@@ -227,15 +227,15 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (substr($url,-1)=='/') $url.= $leaf;
 
         } elseif (strpos($id, '.') === false) {
-            // page, 
+            // page, append $leaf if the id end with ":"
             list($page, $section) = explode('#', $id, 2);
             if (substr($page,-1) == ':') $page.= $leaf;
-            $url = wl($page, '', true);
+            $url = wl($page);
             if (!empty($section)) $url.= '#'.rawurlencode($section);
         } else {
             // media, append $leaf if the id end with ":"
            if (substr($id,-1) == ':') $id.= $leaf;
-           $url = ml($id, '', true);
+           $url = ml($id);
         }
         return $url;
     }
