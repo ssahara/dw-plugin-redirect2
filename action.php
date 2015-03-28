@@ -63,6 +63,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      *
      */
     function __construct() {
+        global $conf;
         $this->LogFile  = $conf['cachedir'].'/redirection.log';
         $this->ConfFile = DOKU_CONF.'redirect.conf';
 
