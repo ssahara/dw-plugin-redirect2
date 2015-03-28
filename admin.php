@@ -1,4 +1,10 @@
 <?php
+/**
+ * Redirect2 - DokuWiki Redirect Manager
+ * 
+ * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
+ * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
+ */
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
@@ -8,10 +14,14 @@ require_once(DOKU_PLUGIN.'admin.php');
 class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
     protected $ConfFile; // path/to/redirection config file
+    protected $LogFile;
     protected $LogData;
 
     function __construct() {
+        global $conf;
+
         $this->ConfFile = DOKU_CONF.'redirect.conf';
+        $this->LogFile = $conf['cachedir'].'/redirection.log';
         $this->LogData = array();
     }
 
@@ -58,6 +68,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo '<input type="submit" value="'.$lang['btn_save'].'" class="button" />';
         echo '</form>';
 
+        if (!$this->getConf('logging')) return;
         $this->loadLogData();
 
         echo '<br />';
@@ -81,16 +92,14 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
      * Load log file
      */
     function loadLogData() {
-        global $conf;
+        if (!file_exists($this->LogFile)) return;
         
-        if (!file_exists($conf['cachedir'].'/redirection.log')) return;
-        
-        $logfile = new SplFileObject($conf['cachedir'].'/redirection.log');
+        $logfile = new SplFileObject($this->LogFile);
         $logfile->setFlags(SplFileObject::READ_CSV);
         $logfile->setCsvControl("\t"); // tsv
 
         foreach ($logfile as $line) {
-            if ($line[0] == Null) continue;
+            if ($line[0] == NULL) continue;
             list($datetime, $id, $url) = $line;
             if (!isset($this->LogData[$id])) {
                 $this->LogData[$id] = array('count' => 1, 'redirect' => $url, 'last' => $datetime);

@@ -13,6 +13,7 @@ require_once(DOKU_PLUGIN.'action.php');
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     protected $ConfFile; // path/to/redirection config file
+    protected $LogFile;
     protected $pattern = array();
 
     /**
@@ -62,6 +63,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      *
      */
     function __construct() {
+        $this->LogFile  = $conf['cachedir'].'/redirection.log';
         $this->ConfFile = DOKU_CONF.'redirect.conf';
 
         $lines = @file($this->ConfFile);
@@ -244,11 +246,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Logging of redirection
      */
     protected function _logRedirection($id, $url) {
-        global $conf;
-
         $t = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
         $s = $t."\t".$id."\t".$url;
-        io_saveFile($conf['cachedir'].'/redirection.log', $s."\n", true);
+        io_saveFile($this->LogFile, $s."\n", true);
     }
 
 }
