@@ -100,7 +100,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if( !($ACT == 'show' || (!is_array($ACT) && substr($ACT, 0, 7) == 'export_')) ) return;
 
         // return if redirection is temporarily disabled by url paramter
-        if ($INPUT->str('redirect',null) == 'no') return;
+        if ($INPUT->str('redirect',NULL) == 'no') {
+            if ($this->getConf('show_msg')) {
+                msg(sprintf($this->getLang('redirect_to'), '<a href="'.
+                    hsc($_SERVER['HTTP_REFERER']).'">'.urldecode($_SERVER['HTTP_REFERER']).
+                    '</a>'), 0);
+            }
+            return;
+        }
 
         /*
          * Redirect based on simple prefix match of the current page
