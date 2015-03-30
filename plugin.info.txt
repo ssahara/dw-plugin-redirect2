@@ -2,6 +2,6 @@ base   redirect2
 name   Redirect Manager
 author Satoshi Sahara
 email  sahara.satoshi@gmail.com
-date   2015-03-27
-desc   DokuWiki Redirect Manager, which provide a page redirection control similar to Redirect Directives of Apache
+date   2015-03-30
+desc   Redirect access to pages and media files by asking the client to refetch resources at the new location with redirect status 301 or 302.
 url    https://github.com/ssahara/dw-plugin-redirect2
