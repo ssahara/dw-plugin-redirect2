@@ -48,18 +48,12 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     /**
      * Setup the redirection map from config file
      *
-     * config file のフォーマット
+     * syntax of the config file
+     *    [status]   ptnSearch   ptnDestination
      *
-     *  [status]   ptnSearch   ptnDestination
-     *
-     * A) 正規表現を使用しないリダイレクト指定では...
-     *   1) ページを指定する場合は、":"で始めてはならない。
-     *      ":"で始まる場合は メディアファイルの指定と見なすため。
-     *   2) メディアファイルを指定する場合は必ず":"で始めること。
-     *
-     * B) 正規表現を使用したリダイレクト指定では...
-     *   1) Search パターンは "%" で囲むこと
-     *   2) メディアファイルは、拡張子を含むように指定すること
+     *  status:         301 or 302
+     *  ptnSearch:      old id pattern of page or media
+     *  ptnDestination: new id pattern of page or media
      *
      */
     function __construct() {
@@ -101,11 +95,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
         // return if redirection is temporarily disabled by url paramter
         if ($INPUT->str('redirect',NULL) == 'no') {
-            if ($this->getConf('show_msg')) {
-                msg(sprintf($this->getLang('redirect_to'), '<a href="'.
-                    hsc($_SERVER['HTTP_REFERER']).'">'.urldecode($_SERVER['HTTP_REFERER']).
-                    '</a>'), 0);
-            }
+            $this->_show_message('redirect_to'); // message shown at current page
             return;
         }
 
@@ -118,8 +108,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         do {
             if (isset($this->pattern[$checkID])) {
                 $url = $this->_buildURL( $this->pattern[$checkID]['destination'], $leaf);
-                if ($this->getConf('show_msg')) $this->_show_message();
-                if ($this->getConf('logging')) $this->_logRedirection($ID, $url);
+                $this->_show_message('redirected_from'); // message shown at destination
+                $this->_logRedirection($ID, $url);
                 http_status($this->pattern[$checkID]['status']);
                 send_redirect($url);
                 exit;
@@ -135,8 +125,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $redirect = $this->_RedirectMatch($ID);
         if ($redirect !== false) {
             $url = $this->_buildURL( $redirect['destination'], '');
-            if ($this->getConf('show_msg')) $this->_show_message();
-            if ($this->getConf('logging')) $this->_logRedirection($ID, $url);
+            $this->_show_message('redirected_from'); // message shown at destination
+            $this->_logRedirection($ID, $url);
             http_status($redirect['status']);
             send_redirect($url);
             exit;
@@ -161,8 +151,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $checkID = (substr($checkID,0,1)!=':') ? ':'.$checkID : $checkID;
         do {
             if (isset($this->pattern[$checkID])) {
-                $url = $this->_buildURL( $this->pattern[$checkID]['destination'], $leaf);
-                if ($this->getConf('logging')) $this->_logRedirection($event->data['media'], $url);
+                $url = $this->_buildURL($this->pattern[$checkID]['destination'], $leaf);
+                $this->_logRedirection($event->data['media'], $url);
                 $event->data['status'] = $this->pattern[$checkID]['status'];
                 $event->data['statusmessage'] = $url;
                 return; // Redirect will happen at lib/exe/fetch.php
@@ -177,8 +167,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          */
         $redirect = $this->_RedirectMatch($event->data['media']);
         if ($redirect !== false) {
-            $url = $this->_buildURL( $redirect['destination'],'');
-            if ($this->getConf('logging')) $this->_logRedirection($event->data['media'], $url);
+            $url = $this->_buildURL($redirect['destination'],'');
+            $this->_logRedirection($event->data['media'], $url);
             $event->data['status'] = $redirect['status'];
             $event->data['statusmessage'] = $url;
             return; // Redirect will happen at lib/exe/fetch.php
@@ -210,17 +200,35 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
     /**
      * Show message to inform user redirection
+     * 
+     * @param string $format   key name for message string
      */
-    protected function _show_message() {
+    protected function _show_message($format) {
         global $ID, $INFO;
-        $title = hsc(p_get_metadata($ID, 'title'));
-        if (empty($title)) {
-            $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
-        }
-        $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
-        msg(sprintf($this->getLang('redirected_from'), '<a href="'.
+
+        if ( (($this->getConf('show_msg')==1) && $INFO['isadmin']) ||
+             (($this->getConf('show_msg')==2) && $INFO['ismanager']) ||
+             (($this->getConf('show_msg')==3) && $_SERVER['REMOTE_USER']) ||
+             ( $this->gerConf('show_msg')==4 ) ) {
+            continue;
+        } else return;
+        switch ($format) {
+            case 'redirected_from':
+                $title = hsc(p_get_metadata($ID, 'title'));
+                if (empty($title)) {
+                    $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+                }
+                $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+                msg(sprintf($this->getLang('redirected_from'), '<a href="'.
                     wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
                     ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
+                break;
+            case 'redirect_to':
+                msg(sprintf($this->getLang('redirect_to'), '<a href="'.
+                    hsc($_SERVER['HTTP_REFERER']).'">'.urldecode($_SERVER['HTTP_REFERER']).
+                    '</a>'), 0);
+                break;
+        }
     }
 
     /**
@@ -254,6 +262,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Logging of redirection
      */
     protected function _logRedirection($id, $url) {
+        if (!$this->getConf('logging')) return;
         $t = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
         $s = $t."\t".$id."\t".$url;
         io_saveFile($this->LogFile, $s."\n", true);
