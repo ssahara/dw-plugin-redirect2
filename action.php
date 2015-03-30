@@ -204,13 +204,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $format   key name for message string
      */
     protected function _show_message($format) {
-        global $ID, $INFO;
+        global $ID, $INFO, $INPUT;
 
         if ( (($this->getConf('show_msg')==1) && $INFO['isadmin']) ||
              (($this->getConf('show_msg')==2) && $INFO['ismanager']) ||
-             (($this->getConf('show_msg')==3) && $_SERVER['REMOTE_USER']) ||
+             (($this->getConf('show_msg')==3) && $INPUT->server->has('REMOTE_USER')) ||
              ( $this->gerConf('show_msg')==4 ) ) {
-            continue;
+            // show message
         } else return;
         switch ($format) {
             case 'redirected_from':
@@ -224,9 +224,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                     ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                 break;
             case 'redirect_to':
+                $referer = $INPUT->server->str('HTTP_REFERER');
                 msg(sprintf($this->getLang('redirect_to'), '<a href="'.
-                    hsc($_SERVER['HTTP_REFERER']).'">'.urldecode($_SERVER['HTTP_REFERER']).
-                    '</a>'), 0);
+                    hsc($referer).'">'.urldecode($referer).'</a>'), 0);
                 break;
         }
     }
