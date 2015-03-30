@@ -263,8 +263,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      */
     protected function _logRedirection($id, $url) {
         if (!$this->getConf('logging')) return;
-        $t = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
-        $s = $t."\t".$id."\t".$url;
+        $s = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
+        $s.= "\t".$id."\t".$url;
         io_saveFile($this->LogFile, $s."\n", true);
     }
 
