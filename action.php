@@ -209,7 +209,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if ( (($this->getConf('show_msg')==1) && $INFO['isadmin']) ||
              (($this->getConf('show_msg')==2) && $INFO['ismanager']) ||
              (($this->getConf('show_msg')==3) && $INPUT->server->has('REMOTE_USER')) ||
-             ( $this->gerConf('show_msg')==4 ) ) {
+             ( $this->getConf('show_msg')==4 ) ) {
             // show message
         } else return;
         switch ($format) {
