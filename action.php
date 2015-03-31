@@ -72,12 +72,18 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
             $token = preg_split('/\s+/', $line, 3);
             if (count($token) == 3) {
-                $this->pattern[$token[1]] = array(
-                        'destination' => $token[2], 'status' => $token[0],
-                );
-            } elseif (count($token) == 2) {
-                $this->pattern[$token[0]] = array(
-                        'destination' => $token[1], 'status' => 302,
+                $status = ($token[0] == 301) ? 301 : 302;
+                array_shift($token);
+            } else $status =302;
+
+            if (count($token) != 2) continue;
+            if (strpos($token[0], '%') !== 0) { // not regular expression
+                // get clean match pattern, keeping leading and tailing ":"
+                $head = (substr($token[0],0,1)==':') ? ':' : '';
+                $tail = (substr($token[0],-1) ==':') ? ':' : '';
+                $ptn = $head . cleanID($token[0]) . $tail;
+                $this->pattern[$ptn] = array(
+                        'destination' => $token[1], 'status' => $status,
                 );
             }
         }
