@@ -82,10 +82,12 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $head = (substr($token[0],0,1)==':') ? ':' : '';
                 $tail = (substr($token[0],-1) ==':') ? ':' : '';
                 $ptn = $head . cleanID($token[0]) . $tail;
-                $this->pattern[$ptn] = array(
-                        'destination' => $token[1], 'status' => $status,
-                );
+            } else {
+                $ptn = $token[0];
             }
+            $this->pattern[$ptn] = array(
+                    'destination' => $token[1], 'status' => $status,
+            );
         }
     }
 
