@@ -65,13 +65,14 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo formtext(io_readFile($map->ConfFile));
         echo '</textarea><br />';
         echo '<input type="submit" value="'.$lang['btn_save'].'" class="button" />';
+        echo '<br />';
         echo '</form>';
 
         if (!$this->getConf('logging')) return;
         $logData = $this->getLogData();
 
-        echo $this->locale_xhtml('loginfo');
         echo '<br />';
+        echo $this->locale_xhtml('loginfo');
         echo '<table class="'.$this->getPluginName().'">';
         echo '<tr><th>Count</th><th>Status</th><th>Page/Media</th><th>Redirect to</th><th>Recent redirection</th></tr>';
         foreach ($logData as $id => $data) {
@@ -79,7 +80,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             echo '<td>'.$data['count'].'</td>';
             echo '<td>'.$data['status'].'</td>';
             echo '<td>'.hsc($id).'</td>';
-            echo '<td>'.urldecode($data['redirect']).'</td>';
+            echo '<td>'.urldecode($data['url']).'</td>';
             echo '<td>'.$data['last'].'</td>';
             echo '</tr>';
         }
@@ -104,15 +105,19 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             list($datetime, $status, $id, $url) = $line;
             if (!isset($logData[$id])) {
                 $logData[$id] = array(
-                        'count'    => 1,
-                        'status'   => $status,
-                        'redirect' => $url,
-                        'last'     => $datetime,
+                        'count'  => 1,
+                        'status' => $status,
+                        'url'    => $url,
+                        'last'   => $datetime,
                 );
             } else {
                 $logData[$id]['count'] ++;
                 if ($datetime > $logData[$id]['last']) {
                     $logData[$id]['last'] = $datetime;
+                }
+                if ($status == 404) {
+                    // set recent referer url
+                    $logData[$id]['url'] = $url;
                 }
             }
         }

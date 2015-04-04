@@ -43,7 +43,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          $event->stopPropagation();
          $event->preventDefault();
 
-         $this->_logRedirection(404, $ID);
+         $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+         $this->_logRedirection(404, $ID, $referer);
          echo p_wiki_xhtml($this->getConf('404page'), false);
          return true;
      }
@@ -242,8 +243,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if (!$this->getConf('logging')) return;
         $s = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
         if ($status == 404) {
-            $s.= "\t".$status."\t".$id;
+            // $url is referer of the $id page
+            $s.= "\t".$status."\t".$id."\t".$url;
         } else {
+            // $url is new url to which redirected from the $id page
             $s.= "\t".$status."\t".$id."\t".$url;
         }
         io_saveFile($this->LogFile, $s."\n", true);
