@@ -12,9 +12,7 @@ require_once(DOKU_PLUGIN.'action.php');
  
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
-    protected $ConfFile; // path/to/redirection config file
     protected $LogFile;
-    protected $pattern = array();
 
     /**
      * Register event handlers
@@ -23,6 +21,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
         $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
+    }
+
+    function __construct() {
+        global $conf;
+        $this->LogFile  = $conf['cachedir'].'/redirection.log';
     }
 
 
@@ -47,53 +50,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     /**
-     * Setup the redirection map from config file
-     *
-     * syntax of the config file
-     *    [status]   ptnSearch   ptnDestination
-     *
-     *  status:         301 or 302
-     *  ptnSearch:      old id pattern of page or media
-     *  ptnDestination: new id pattern of page or media
-     *
-     */
-    function __construct() {
-        global $conf;
-        $this->LogFile  = $conf['cachedir'].'/redirection.log';
-        $this->ConfFile = DOKU_CONF.'redirect.conf';
-
-        $lines = @file($this->ConfFile);
-        if (!$lines) return;
-        foreach ($lines as $line) {
-            if (preg_match('/^#/',$line)) continue;
-            $line = str_replace('\\#','#', $line);
-            $line = preg_replace('/\s#.*$/','', $line);
-            $line = trim($line);
-            if (empty($line)) continue;
-
-            $token = preg_split('/\s+/', $line, 3);
-            if (count($token) == 3) {
-                $status = ($token[0] == 301) ? 301 : 302;
-                array_shift($token);
-            } else $status =302;
-
-            if (count($token) != 2) continue;
-            if (strpos($token[0], '%') !== 0) { // not regular expression
-                // get clean match pattern, keeping leading and tailing ":"
-                $head = (substr($token[0],0,1)==':') ? ':' : '';
-                $tail = (substr($token[0],-1) ==':') ? ':' : '';
-                $ptn = $head . cleanID($token[0]) . $tail;
-            } else {
-                $ptn = $token[0];
-            }
-            $this->pattern[$ptn] = array(
-                    'destination' => $token[1], 'status' => $status,
-            );
-        }
-    }
-
-
-    /**
      * Redirection of pages
      */
     function redirectPage(&$event, $param){
@@ -107,7 +63,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             return;
         }
 
-        if (empty($this->pattern)) return;
+        // read redirect map
+        $map = $this->loadHelper($this->getPluginName());
+        if (empty($map)) return false;
 
         /*
          * Redirect based on simple prefix match of the current page
@@ -116,9 +74,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $leaf = noNS($ID); // end token of the pageID
         $checkID = $ID;
         do {
-            if (isset($this->pattern[$checkID])) {
-                $url = $this->_buildURL( $this->pattern[$checkID]['destination'], $leaf);
-                $status = $this->pattern[$checkID]['status'];
+            if (isset($map->pattern[$checkID])) {
+                $url = $this->_buildURL( $map->pattern[$checkID]['destination'], $leaf);
+                $status = $map->pattern[$checkID]['status'];
                 $this->_show_message('redirected_from'); // message shown at destination
                 $this->_logRedirection($status, $ID, $url);
                 http_status($status);
@@ -133,7 +91,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on a regular expression match against the current page
          * (RedirectMatch Directives)
          */
-        $redirect = $this->_RedirectMatch($ID);
+        $redirect = $this->_RedirectMatch($ID, $map);
         if ($redirect !== false) {
             $url = $this->_buildURL( $redirect['destination'], '');
             $status = $redirect['status'];
@@ -153,6 +111,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      */
     function redirectMedia(&$event, $param) {
 
+        // read redirect map
+        $map = $this->loadHelper($this->getPluginName());
+        if (empty($map)) return false;
+
         /*
          * Redirect based on simple prefix match of the current media
          * (Redirect Directives)
@@ -161,9 +123,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         // for media, $checkID need to be clean with ':' prefixed
         $checkID = ':'.ltrim($event->data['media'],':');
         do {
-            if (isset($this->pattern[$checkID])) {
-                $url = $this->_buildURL($this->pattern[$checkID]['destination'], $leaf);
-                $status = $this->pattern[$checkID]['status'];
+            if (isset($map->pattern[$checkID])) {
+                $url = $this->_buildURL($map->pattern[$checkID]['destination'], $leaf);
+                $status = $map->pattern[$checkID]['status'];
                 $this->_logRedirection($status, $event->data['media'], $url);
                 $event->data['status'] = $status;
                 $event->data['statusmessage'] = $url;
@@ -178,7 +140,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * (RedirectMatch Directives)
          */
         $checkID = ':'.ltrim($event->data['media'],':');
-        $redirect = $this->_RedirectMatch($chechID);
+        $redirect = $this->_RedirectMatch($checkID, $map);
         if ($redirect !== false) {
             $url = $this->_buildURL($redirect['destination'],'');
             $status = $redirect['status'];
@@ -197,10 +159,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $checkID  full and cleaned name of page or media
      *                         for the page, it must be clean id
      *                         for media, it must be clean with ':' prefixed
+     * @param array $map       redirect map
      * @return array of status and destination (id), or false if no matched
      */
-    protected function _RedirectMatch( $checkID ) {
-        foreach ($this->pattern as $pattern => $data) {
+    protected function _RedirectMatch( $checkID, $map ) {
+        foreach ($map->pattern as $pattern => $data) {
             if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
             $destID = preg_replace( $pattern, $data['destination'], $checkID, -1, $count);
             if ($count > 0) {
