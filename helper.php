@@ -29,8 +29,28 @@ class helper_plugin_redirect2 extends DokuWiki_Plugin {
 
         if ($this->pattern != NULL) return;
 
+        $cache = new cache('##redirect2##','.conf');
+        $depends = array('files' => array($this->ConfFile));
+
+        if ($cache->useCache($depends)) {
+            $this->pattern = unserialize($cache->retrieveCache(false));
+            //error_log('Redirect2 : loaded from cache '.$cache->cache);
+        } elseif ($this->_loadConfig()) {
+            // cache has expired
+            //error_log('Redirect2 : loaded from file '.$this->ConfFile);
+            $cache->storeCache(serialize($this->pattern));
+        }
+    }
+
+    function __destruct() {
+        $this->pattern = NULL;
+    }
+
+    protected function _loadConfig() {
+        if (!file_exists($this->ConfFile)) return false;
+
         $lines = @file($this->ConfFile);
-        if (!$lines) return;
+        if (!$lines) return false;
         foreach ($lines as $line) {
             if (preg_match('/^#/',$line)) continue;
             $line = str_replace('\\#','#', $line);
@@ -56,11 +76,8 @@ class helper_plugin_redirect2 extends DokuWiki_Plugin {
             $this->pattern[$ptn] = array(
                     'destination' => $token[1], 'status' => $status,
             );
-            error_log('redirect2a: pattern['.$ptn.']='.var_export($this->pattern[$ptn], true));
         }
+        return ($this->pattern != NULL) ? true : false;
     }
 
-    function __destruct() {
-        $this->pattern = NULL;
-    }
 }
