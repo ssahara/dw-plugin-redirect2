@@ -78,7 +78,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo '<th>Count</th>';
         echo '<th>Status</th>';
         echo '<th>Page/Media</th>';
-        echo '<th>Redirect to</th>';
+        echo '<th>Redirect to | Referer</th>';
         echo '<th>Recent redirection</th>';
         echo '</tr></thead>';
         echo '<tbody>';
