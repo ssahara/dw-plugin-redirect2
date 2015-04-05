@@ -2,6 +2,6 @@ base   redirect2
 name   Redirect Manager
 author Satoshi Sahara
 email  sahara.satoshi@gmail.com
-date   2015-03-31
+date   2015-04-05
 desc   Redirect access to pages and media files by asking the client to refetch resources at the new location with redirect status 301 or 302.
 url    https://github.com/ssahara/dw-plugin-redirect2
