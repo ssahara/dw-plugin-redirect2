@@ -74,7 +74,14 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         echo '<br />';
         echo $this->locale_xhtml('loginfo');
         echo '<table class="'.$this->getPluginName().'">';
-        echo '<tr><th>Count</th><th>Status</th><th>Page/Media</th><th>Redirect to</th><th>Recent redirection</th></tr>';
+        echo '<thead><tr>';
+        echo '<th>Count</th>';
+        echo '<th>Status</th>';
+        echo '<th>Page/Media</th>';
+        echo '<th>Redirect to</th>';
+        echo '<th>Recent redirection</th>';
+        echo '</tr></thead>';
+        echo '<tbody>';
         foreach ($logData as $id => $data) {
             echo '<tr>';
             echo '<td>'.$data['count'].'</td>';
@@ -84,6 +91,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             echo '<td>'.$data['last'].'</td>';
             echo '</tr>';
         }
+        echo '</tbody>';
         echo '</table>';
 
     }
