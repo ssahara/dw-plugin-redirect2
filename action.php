@@ -60,7 +60,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
         // return if redirection is temporarily disabled by url paramter
         if ($INPUT->str('redirect',NULL) == 'no') {
-            $this->_show_message('redirect_to'); // message shown at current page
+            $this->_show_message(200, 'redirect_to'); // message shown at current page
             return;
         }
 
@@ -78,7 +78,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (isset($map->pattern[$checkID])) {
                 $url = $this->_buildURL( $map->pattern[$checkID]['destination'], $leaf);
                 $status = $map->pattern[$checkID]['status'];
-                $this->_show_message('redirected_from'); // message shown at destination
+                $this->_show_message($status, 'redirected_from'); // message shown at destination
                 $this->_logRedirection($status, $ID, $url);
                 http_status($status);
                 send_redirect($url);
@@ -96,7 +96,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if ($redirect !== false) {
             $url = $this->_buildURL( $redirect['destination'], '');
             $status = $redirect['status'];
-            $this->_show_message('redirected_from'); // message shown at destination
+            $this->_show_message($status, 'redirected_from'); // message shown at destination
             $this->_logRedirection($status, $ID, $url);
             http_status($status);
             send_redirect($url);
@@ -179,19 +179,24 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     /**
      * Show message to inform user redirection
      * 
+     * @param int    $status   http status of the redirection
      * @param string $format   key name for message string
      */
-    protected function _show_message($format) {
+    protected function _show_message($status, $format) {
         global $ID, $INFO, $INPUT;
 
-        if ( (($this->getConf('show_msg')==1) && $INFO['isadmin']) ||
-             (($this->getConf('show_msg')==2) && $INFO['ismanager']) ||
-             (($this->getConf('show_msg')==3) && $INPUT->server->has('REMOTE_USER')) ||
-             ( $this->getConf('show_msg')==4 ) ) {
-            // show message
-        } else return;
+        $show = ( ($INFO['isadmin'] && ($this->getConf('msg_target') >= 0))
+               || ($INFO['ismanager'] && ($this->getConf('msg_target') >= 1))
+               || ($INPUT->server->has('REMOTE_USER') && ($this->getConf('msg_target') >= 2))
+               || ($this->getConf('msg_target') >= 3) );
+        if (!$show) return;
+
         switch ($format) {
             case 'redirected_from':
+                if ( ($this->getConf('show_msg') == 0) ||
+                    (($this->getConf('show_msg') == 1) && ($status != 301)) ) {
+                    break; // no need to show message
+                }
                 $title = hsc(p_get_metadata($ID, 'title'));
                 if (empty($title)) {
                     $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
@@ -202,6 +207,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                     ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                 break;
             case 'redirect_to':
+                if ($this->getConf('show_msg') == 0) break;
                 $referer = $INPUT->server->str('HTTP_REFERER');
                 msg(sprintf($this->getLang('redirect_to'), '<a href="'.
                     hsc($referer).'">'.urldecode($referer).'</a>'), 0);
