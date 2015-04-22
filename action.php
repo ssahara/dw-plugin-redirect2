@@ -18,9 +18,12 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Register event handlers
      */
     function register(Doku_Event_Handler $controller) {
-        $controller->register_hook('DOKUWIKI_STARTED', 'AFTER',     $this, 'redirectPage');
+
+        $controller->register_hook('DOKUWIKI_STARTED', 'BEFORE',    $this, 'handleReplacedBy');
+        $controller->register_hook('ACTION_HEADERS_SEND', 'BEFORE', $this, 'redirectPage');
         $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
+
     }
 
     function __construct() {
@@ -51,7 +54,59 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     /**
-     * Redirection of pages
+     * Page redirection based on metadata 'relation isreplacedby'
+     * that is set by syntax component
+     */
+    function handleReplacedBy(&$event, $param) {
+        global $ID, $ACT, $REV, $INPUT;
+
+        if (($ACT != 'show' && $ACT != '') || $REV) return;
+
+        // return if no redirection data
+        $id = p_get_metadata($ID,'relation isreplacedby');
+        if (empty($id)) return;
+
+        // preserve #section from $page
+        list($page, $section) = explode('#', $id, 2);
+        $section = (isset($section)) ? '#'.$section : '';
+
+        // check whether redirection is temporarily disabled by url paramter
+        if (is_null($INPUT->str('redirect', NULL))) {
+            // Redirect current page
+
+            // prepare link for internal redirects, keep external targets
+            if (!preg_match('#^https?://#i', $page)) {
+                $url = wl($page);
+
+                if (!headers_sent()) {
+                    // remember current page that is to be redirected to other page
+                    session_start();
+                    $_SESSION[DOKU_COOKIE]['redirect'] = $ID;
+                }
+            }
+
+            // redirect
+            $status = 301;
+            $this->_show_message($status, 'redirected_from'); // message shown at destination
+            http_status($status);
+            send_redirect($url.$section);
+            exit;
+
+        } else {
+            // check whether visited again from previous redirection
+            if (isset($_SESSION[DOKU_COOKIE]['redirect'])) {
+ 
+                if (cleanID($_SESSION[DOKU_COOKIE]['redirect']) == $ID) {
+                    $this->_show_message(200, 'redirect_to', cleanID($id));
+                }
+                unset($_SESSION[DOKU_COOKIE]['redirect']);
+            }
+        }
+    }
+
+
+    /**
+     * Redirection of pages based on redirect.conf file
      */
     function redirectPage(&$event, $param){
         global $ACT, $ID, $INPUT;
@@ -59,10 +114,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if( !($ACT == 'show' || (!is_array($ACT) && substr($ACT, 0, 7) == 'export_')) ) return;
 
         // return if redirection is temporarily disabled by url paramter
-        if ($INPUT->str('redirect',NULL) == 'no') {
-            $this->_show_message(200, 'redirect_to'); // message shown at current page
-            return;
-        }
+        if ($INPUT->str('redirect',NULL) == 'no') return;
 
         // read redirect map
         $map = $this->loadHelper($this->getPluginName());
@@ -80,6 +132,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $status = $map->pattern[$checkID]['status'];
                 $this->_show_message($status, 'redirected_from'); // message shown at destination
                 $this->_logRedirection($status, $ID, $url);
+                $_SESSION[DOKU_COOKIE]['redirect'] = $ID;     // 実験的
                 http_status($status);
                 send_redirect($url);
                 exit;
@@ -98,6 +151,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             $status = $redirect['status'];
             $this->_show_message($status, 'redirected_from'); // message shown at destination
             $this->_logRedirection($status, $ID, $url);
+            $_SESSION[DOKU_COOKIE]['redirect'] = $ID;     // 実験的
             http_status($status);
             send_redirect($url);
             exit;
@@ -106,7 +160,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     /**
-     * Redirect of media
+     * Redirect of media based on redirect.conf file
      * FETCH_MEDIA_STATUS event handler
      * @see also https://www.dokuwiki.org/devel:event:fetch_media_status
      */
@@ -181,8 +235,9 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * 
      * @param int    $status   http status of the redirection
      * @param string $format   key name for message string
+     * @param string $id
      */
-    protected function _show_message($status, $format) {
+    protected function _show_message($status, $format, $id=NULL) {
         global $ID, $INFO, $INPUT;
 
         $show = ( ($INFO['isadmin'] && ($this->getConf('msg_target') >= 0))
@@ -191,26 +246,39 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                || ($this->getConf('msg_target') >= 3) );
         if (!$show) return;
 
+
         switch ($format) {
             case 'redirected_from':
                 if ( ($this->getConf('show_msg') == 0) ||
                     (($this->getConf('show_msg') == 1) && ($status != 301)) ) {
                     break; // no need to show message
                 }
-                $title = hsc(p_get_metadata($ID, 'title'));
+                if (is_null($id)) $id = $ID;
+                $title = hsc(p_get_metadata($id, 'title'));
                 if (empty($title)) {
-                    $title = hsc(useHeading('navigation') ? p_get_first_heading($ID) : $ID);
+                    $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
                 }
                 $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
                 msg(sprintf($this->getLang('redirected_from'), '<a href="'.
-                    wl($ID, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
+                    wl($id, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
                     ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
                 break;
             case 'redirect_to':
                 if ($this->getConf('show_msg') == 0) break;
-                $referer = $INPUT->server->str('HTTP_REFERER');
-                msg(sprintf($this->getLang('redirect_to'), '<a href="'.
-                    hsc($referer).'">'.urldecode($referer).'</a>'), 0);
+                if (empty($id)) {
+                    $referer = $INPUT->server->str('HTTP_REFERER');
+                    msg(sprintf($this->getLang('redirect_to'), '<a href="'.
+                        hsc($referer).'">'.urldecode($referer).'</a>'), 0);
+                } else {
+                    $title = hsc(p_get_metadata($id, 'title'));
+                    if (empty($title)) {
+                        $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
+                    }
+                    $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+                    msg(sprintf($this->getLang('redirect_to'), '<a href="'.
+                        wl($id).'" rel="nofollow"'.
+                        ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
+                }
                 break;
         }
     }
