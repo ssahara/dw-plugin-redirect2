@@ -77,12 +77,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             // prepare link for internal redirects, keep external targets
             if (!preg_match('#^https?://#i', $page)) {
                 $url = wl($page);
-
-                if (!headers_sent()) {
-                    // remember current page that is to be redirected to other page
-                    session_start();
-                    $_SESSION[DOKU_COOKIE]['redirect'] = $ID;
-                }
             }
 
             // redirect
@@ -94,12 +88,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
         } else {
             // check whether visited again from previous redirection
-            if (isset($_SESSION[DOKU_COOKIE]['redirect'])) {
- 
-                if (cleanID($_SESSION[DOKU_COOKIE]['redirect']) == $ID) {
+            if (isset($_SESSION[DOKU_COOKIE]['bc'])) {
+                $hist = $_SESSION[DOKU_COOKIE]['bc'];
+                end($hist);
+                list($key, $value) = each($hist);
+                if ($key == $ID) {
                     $this->_show_message(200, 'redirect_to', cleanID($id));
                 }
-                unset($_SESSION[DOKU_COOKIE]['redirect']);
             }
         }
     }
