@@ -47,13 +47,15 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
         $page = trim($page);
 
         if (!preg_match('#^(https?)://#i', $page)) {
-            $link = html_wikilink($page);
+            $page = cleanID($page);
+            $title = p_get_metadata($page, 'title');
+            $link = html_wikilink($page, $title);
         } else {
             $link = '<a href="'.hsc($page).'" class="urlextern">'.hsc($page).'</a>';
         }
 
         // prepare message here instead of in render
-        $message = '<div class="noteredirect">'.sprintf($this->getLang('redirect_to'), $link).'</div>';
+        $message = '<div class="notify">'.sprintf($this->getLang('redirect_to'), $link).'</div>';
 
         return array($page, $message);
     }
