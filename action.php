@@ -66,7 +66,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $id = p_get_metadata($ID,'relation isreplacedby');
         if (empty($id)) return;
 
-        // preserve #section from $page
         list($page, $section) = explode('#', $id, 2);
         $section = (isset($section)) ? '#'.$section : '';
 
@@ -83,7 +82,6 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             $status = 301;
             $this->_show_message($status, 'redirected_from'); // message shown at destination
             http_status($status);
-            send_redirect($url.$section);
             exit;
 
         } else {
