@@ -24,8 +24,12 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
      * @param string $mode Parser mode
      */
     public function connectTo($mode) {
-        $this->Lexer->addSpecialPattern('~~REDIRECT>.+?~~', $mode, 'plugin_redirect2');
-        $this->Lexer->addSpecialPattern('^#(?i:redirect)\b.*(?=\n)', $mode, 'plugin_redirect2');
+        if (plugin_isdisabled('pageredirect')) {
+            $this->Lexer->addSpecialPattern('~~REDIRECT>.+?~~',
+                $mode, substr(get_class($this), 7) );
+            $this->Lexer->addSpecialPattern('^#(?i:redirect)\b.*(?=\n)',
+                $mode, substr(get_class($this), 7) );
+        }
     }
 
     /**
