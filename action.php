@@ -76,7 +76,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
             // prepare link for internal redirects, keep external targets
             if (!preg_match('#^https?://#i', $page)) {
-                $url = wl($page);
+                $url = wl($page, array('redirect'=>301));                
             }
 
             // redirect
@@ -93,7 +93,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 end($hist);
                 list($key, $value) = each($hist);
                 if ($key == $ID) {
-                    $this->_show_message(200, 'redirect_to', cleanID($id));
+                    //$this->_show_message(200, 'redirect_to', cleanID($id));
                 }
             }
         }
