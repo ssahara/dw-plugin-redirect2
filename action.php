@@ -66,22 +66,24 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         $id = p_get_metadata($ID,'relation isreplacedby');
         if (empty($id)) return;
 
-        list($page, $section) = explode('#', $id, 2);
-        $section = (isset($section)) ? '#'.$section : '';
-
         // check whether redirection is temporarily disabled by url paramter
         if (is_null($INPUT->str('redirect', NULL))) {
             // Redirect current page
 
             // prepare link for internal redirects, keep external targets
             if (!preg_match('#^https?://#i', $page)) {
-                $url = wl($page, array('redirect'=>301));                
+                list($page, $section) = explode('#', $id, 2);
+                $url = wl($page, array('redirect'=>301));
+                $url.= (isset($section)) ? '#'.$section : '';
+            } else {
+                $url = $id; // external url
             }
 
             // redirect
             $status = 301;
             $this->_show_message($status, 'redirected_from'); // message shown at destination
             http_status($status);
+            send_redirect($url);
             exit;
 
         } else {
