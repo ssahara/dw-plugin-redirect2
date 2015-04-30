@@ -1,5 +1,6 @@
 <?php
 
+$lang['useRedirectMatch'] = 'enable regular expressions matching rule for redirect';
 $lang['show_msg'] = 'Display a message about the redirection?';
   $lang['show_msg_o_0'] = 'no';
   $lang['show_msg_o_1'] = 'only 301 redirect';

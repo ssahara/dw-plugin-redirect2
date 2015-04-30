@@ -1,5 +1,6 @@
 <?php
 
+$lang['useRedirectMatch'] = '正規表現を使用したリダイレクトルールを使用する';
 $lang['show_msg'] = 'リダイレクトされたことを表示するか。';
   $lang['show_msg_o_0'] = '表示しない';
   $lang['show_msg_o_1'] = 'only 301 redirect';
