@@ -171,9 +171,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
                 // add leaf to $dest, considering url fragment
-                if (preg_match('@(:|/)$@', $ns)) $ns.= $leaf;
-                if (!empty($section)) $ns.= '#'.rawurlencode($section);
-                $dest = $ns;
+                $dest = $ns . (preg_match('@(:|/)$@', $ns)) ? $leaf : '';
+                $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
                 $url = $this->getRedirectURL($status, $dest);
@@ -231,9 +230,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
                 // add leaf to $dest, considering url fragment
-                if (preg_match('@(:|/)$@', $ns)) $ns.= $leaf;
-                if (!empty($section)) $ns.= '#'.rawurlencode($section);
-                $dest = $ns;
+                $dest = $ns . (preg_match('@(:|/)$@', $ns)) ? $leaf : '';
+                $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
                 $url = $this->getRedirectURL($status, $dest);
