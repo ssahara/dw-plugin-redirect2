@@ -48,7 +48,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          $event->preventDefault();
 
          $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
-         $this->_logRedirection(404, $ID, $referer);
+         $this->_log_redirection(404, $ID, $referer);
          echo p_wiki_xhtml($this->getConf('404page'), false);
          return true;
      }
@@ -61,7 +61,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $dest redirect destination, id or external url
      * @return mixed       url of the destination page/media, or false
      */
-    private function getRedirectURL($status = 302, $dest) {
+    protected function getRedirectURL($status = 302, $dest) {
         global $ID;
 
         // check whether visit again using breadcrums trace
