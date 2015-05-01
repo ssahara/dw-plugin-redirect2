@@ -350,7 +350,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     protected function _log_redirection($status, $orig, $dest='') {
         if (!$this->getConf('logging')) return;
 
-        $s = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
+        $dbg = debug_backtrace();
+        $caller = $dbg[1]['function'];
+
+        $s = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME'])."\t".$caller;
         if ($status == 404) {
             // $dest is referer of the $orig page
             $s.= "\t".$status."\t".$orig."\t".$dest;

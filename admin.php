@@ -110,7 +110,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
         foreach ($logfile as $line) {
             if ($line[0] == NULL) continue;
-            list($datetime, $status, $id, $url) = $line;
+            list($datetime, $caller, $status, $id, $url) = $line;
             if (!isset($logData[$id])) {
                 $logData[$id] = array(
                         'count'  => 1,
