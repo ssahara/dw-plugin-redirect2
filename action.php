@@ -65,39 +65,38 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         global $ID;
 
         // check whether visit again using breadcrums trace
+        // Note: this does not completely eliminate redirect loop.
         if ($this->_foundInBreadcrumbs(cleanID($dest))) {
-            msg('halted redirection from '.$ID.' to '.$dest.' due to prevent loop.', -1);
+            $this->_show_message('redirect_halt', $ID, $dest);
             return false;
         } else {
-            // logging
-            $this->_log_redirection($status, $ID, $dest); 
-
             // generate url
             if (preg_match('@^(https?://|/)@', $dest)) {
-                $url = $id;   // external url
+                $url = $dest; // external url
             } else {
-                resolve_pageid(getNS($ID), $id, $exists);
-                list($ext, $mime) = mimetype($id);
-                if ($ext) {  // media
-                    $url = ml($id);
+                resolve_pageid(getNS($ID), $dest, $exists);
+                list($ext, $mime) = mimetype($dest);
+                if ($ext) {   // media
+                    $url = ml($dest);
                 } else {      // page
-                    list($page, $section) = explode('#', $id, 2);
+                    list($page, $section) = explode('#', $dest, 2);
                     $url = wl($page);
                     if (!empty($section)) $url.= '#'.rawurlencode($section);
 
                     // output message, to be shown at destination page (after redirect)
-                    $this->_show_message($status, 'redirected_from', $ID);
+                    $this->_show_message('redirected_from', $ID, $dest, $status);
                 }
             }
             return $url;
         }
     }
 
-
     /**
-     * prevent infinite redirection loop by breadcrumbs (session cookie)
+     * Check if the page found in breadcrumbs (session cookie)
+     * to prevent infinite redirection loop
      *
-     * @return bool  true if id found in breadcrumbs
+     * @param string $id  absolute page name (id)
+     * @return bool  true if id (of the page) found in breadcrumbs
      */
     private function _foundInBreadcrumbs ($id) {
         list($page, $section) = explode('#', $id, 2);
@@ -105,8 +104,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         if (isset($_SESSION[DOKU_COOKIE]['bc'])) {
             $hist = $_SESSION[DOKU_COOKIE]['bc'];
             if (array_key_exists($page, $_SESSION[DOKU_COOKIE]['bc'])) {
-                error_log('$id= '.$page."\n".'found in $hist= '.var_export($hist, true));
-                error_log('redirect must stop! '.$id);
+                error_log('redirect to page['.$page.'] must halt due to prevent loop '."\n".
+                          'found in breadcrumbs = '.var_export($hist, true));
                 return true;
             }
         }
@@ -135,6 +134,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             $status = 301;
             $url = $this->getRedirectURL($status, $dest);
             if ($url !== false) {
+                $this->_log_redirection($status, $ID, $dest);
                 http_status($status);
                 send_redirect($url);
                 exit;
@@ -171,12 +171,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
                 // add leaf to $dest, considering url fragment
-                $dest = $ns . (preg_match('@(:|/)$@', $ns)) ? $leaf : '';
+                $dest = $ns .((preg_match('@(:|/)$@', $ns)) ? $leaf : '');
                 $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
                 $url = $this->getRedirectURL($status, $dest);
                 if ($url !== false) {
+                    $this->_log_redirection($status, $ID, $dest);
                     http_status($status);
                     send_redirect($url);
                     exit;
@@ -197,6 +198,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $status = $redirect['status'];
                 $url = $this->getRedirectURL($status, $dest);
                 if ($url !== false) {
+                    $this->_log_redirection($status, $ID, $dest);
                     http_status($status);
                     send_redirect($url);
                     exit;
@@ -230,12 +232,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
                 // add leaf to $dest, considering url fragment
-                $dest = $ns . (preg_match('@(:|/)$@', $ns)) ? $leaf : '';
+                $dest = $ns .((preg_match('@(:|/)$@', $ns)) ? $leaf : '');
                 $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
                 $url = $this->getRedirectURL($status, $dest);
                 if ($url !== false) {
+                    $this->_log_redirection($status, $event->data['media'], $dest);
                     $event->data['status'] = $status;
                     $event->data['statusmessage'] = $url;
                     return; // Redirect will happen at lib/exe/fetch.php
@@ -257,6 +260,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 $status = $redirect['status'];
                 $url = $this->getRedirectURL($status, $dest);
                 if ($url !== false) {
+                    $this->_log_redirection($status, $event->data['media'], $dest);
                     $event->data['status'] = $status;
                     $event->data['statusmessage'] = $url;
                     return; // Redirect will happen at lib/exe/fetch.php
@@ -294,53 +298,49 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     /**
      * Show message to inform user redirection
      * 
-     * @param int    $status   http status of the redirection
      * @param string $format   key name for message string
-     * @param string $id
+     * @param string $orig     page id of redirect origin
+     * @param string $dest     page id of redirect destination
+     * @param int    $status   http status of the redirection
      */
-    protected function _show_message($status, $format, $id=NULL) {
+    protected function _show_message($format, $orig=NULL, $dest=NULL, $status=302) {
         global $ID, $INFO, $INPUT;
 
+        // check who can see the message
         $show = ( ($INFO['isadmin'] && ($this->getConf('msg_target') >= 0))
                || ($INFO['ismanager'] && ($this->getConf('msg_target') >= 1))
                || ($INPUT->server->has('REMOTE_USER') && ($this->getConf('msg_target') >= 2))
                || ($this->getConf('msg_target') >= 3) );
         if (!$show) return;
+        // make links used in message
+        $link = array();
+        foreach (array($orig, $dest) as $id) {
+            $title = hsc(p_get_metadata($id, 'title'));
+            if (empty($title)) {
+                $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
+            }
+            $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+            $link[$id] = '<a href="'.wl($id, array('redirect' => 'no')).'" rel="nofollow"'.
+                         ' class="'.$class.'" title="'.$title.'">'.$title.'</a>';
+        }
 
         switch ($format) {
+            case 'redirect_halt':
+                // "Halted redirection from %1$s to %2$s due to prevent loop."
+                msg(sprintf($this->getLang($format), $link[$orig], $link[$dest]), -1);
+                break;
+
             case 'redirected_from':
+                // "You were redirected here (%2$s) from %1$s."
                 if ( ($this->getConf('show_msg') == 0) ||
                     (($this->getConf('show_msg') == 1) && ($status != 301)) ) {
                     break; // no need to show message
                 }
-                if (is_null($id)) $id = $ID;
-                $title = hsc(p_get_metadata($id, 'title'));
-                if (empty($title)) {
-                    $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
-                }
-                $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
-                msg(sprintf($this->getLang('redirected_from'), '<a href="'.
-                    wl($id, array('redirect' => 'no'), TRUE, '&').'" rel="nofollow"'.
-                    ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
+                msg(sprintf($this->getLang($format), $link[$orig], $link[$dest]), 0);
                 break;
-            case 'redirect_to':
-                if ($this->getConf('show_msg') == 0) break;
-                if (empty($id)) {
-                    $referer = $INPUT->server->str('HTTP_REFERER');
-                    msg(sprintf($this->getLang('redirect_to'), '<a href="'.
-                        hsc($referer).'">'.urldecode($referer).'</a>'), 0);
-                } else {
-                    $title = hsc(p_get_metadata($id, 'title'));
-                    if (empty($title)) {
-                        $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
-                    }
-                    $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
-                    msg(sprintf($this->getLang('redirect_to'), '<a href="'.
-                        wl($id).'" rel="nofollow"'.
-                        ' class="'.$class.'" title="'.$title.'">'.$title.'</a>'), 0);
-                }
-                break;
-        }
+
+        } // end switch
+
     }
 
 
@@ -352,10 +352,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
         $s = date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME']);
         if ($status == 404) {
-            // $url is referer of the $id page
+            // $dest is referer of the $orig page
             $s.= "\t".$status."\t".$orig."\t".$dest;
         } else {
-            // $url is new url to which redirected from the $id page
+            // redirect from $orig to $dest
             $s.= "\t".$status."\t".$orig."\t".$dest;
         }
         io_saveFile($this->LogFile, $s."\n", true);
