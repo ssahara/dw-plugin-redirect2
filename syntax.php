@@ -27,7 +27,7 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
         if (plugin_isdisabled('pageredirect')) {
             $this->Lexer->addSpecialPattern('~~REDIRECT>.+?~~',
                 $mode, substr(get_class($this), 7) );
-            $this->Lexer->addSpecialPattern('^#(?i:redirect)\b.*(?=\n)',
+            $this->Lexer->addSpecialPattern('\n#(?i:redirect)\b.*(?=\n)',
                 $mode, substr(get_class($this), 7) );
         }
     }
@@ -44,7 +44,6 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
     public function handle($match, $state, $pos, Doku_Handler $handler){
         // extract target page from match pattern
         if ($match[0] == '#') {     // #REDIRECT PAGE
-            $page = substr($match, 10);
         } else {                    // ~~REDIRECT>PAGE~~
             $page = substr($match, 11, -2);
         }
@@ -76,12 +75,6 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
         if ($format == 'xhtml') {
             // add prepared note about redirection
             $renderer->doc .= $data[1];
-/*
-            // hook into the post render event to allow the page to be redirected
-            global $EVENT_HANDLER;
-            $action = plugin_load('action','redirect2');
-            $EVENT_HANDLER->register_hook('TPL_ACT_RENDER','AFTER', $action, 'handle_redirect2_redirect');
-*/
             return true;
         }
         if ($format == 'metadata') {
