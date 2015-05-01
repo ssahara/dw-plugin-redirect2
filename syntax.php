@@ -44,6 +44,7 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
     public function handle($match, $state, $pos, Doku_Handler $handler){
         // extract target page from match pattern
         if ($match[0] == '#') {     // #REDIRECT PAGE
+            $page = substr(ltrim($match), 10);
         } else {                    // ~~REDIRECT>PAGE~~
             $page = substr($match, 11, -2);
         }
