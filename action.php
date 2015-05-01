@@ -321,7 +321,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             }
             $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
             $link[$id] = '<a href="'.wl($id, array('redirect' => 'no')).'" rel="nofollow"'.
-                         ' class="'.$class.'" title="'.$title.'">'.$title.'</a>';
+                         ' class="'.$class.'" title="'.$id.'">'.$title.'</a>';
         }
 
         switch ($format) {
