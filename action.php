@@ -164,14 +164,13 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on simple prefix match of the current page
          * (Redirect Directives)
          */
-        $leaf = noNS($ID); // end token of the pageID
+        $leaf = '';  // rest of checkID ($ID = $checkID + $leaf)
         $checkID = $ID;
         do {
             if (isset($map->pattern[$checkID])) {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
-                // add leaf to $dest, considering url fragment
-                $dest = $ns .((preg_match('@(:|/)$@', $ns)) ? $leaf : '');
+                $dest = $ns.$leaf;
                 $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
@@ -184,6 +183,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 }
             }
             // check hierarchic namespace replacement
+            $leaf = noNS(rtrim($checkID,':')).$leaf;
             $checkID = ($checkID == ':') ? false : getNS(rtrim($checkID,':')).':';
         } while ($checkID != false);
 
@@ -224,15 +224,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
          * Redirect based on simple prefix match of the current media
          * (Redirect Directives)
          */
-        $leaf = noNS($event->data['media']); // end token of the mediaID
+        $leaf = '';
         // for media, $checkID need to be clean with ':' prefixed
         $checkID = ':'.ltrim($event->data['media'],':');
         do {
             if (isset($map->pattern[$checkID])) {
                 $dest = $map->pattern[$checkID]['destination'];
                 list($ns, $section) = explode('#', $dest, 2);
-                // add leaf to $dest, considering url fragment
-                $dest = $ns .((preg_match('@(:|/)$@', $ns)) ? $leaf : '');
+                $dest = $ns.$leaf;
                 $dest.= (!empty($section)) ? '#'.rawurlencode($section) : '';
 
                 $status = $map->pattern[$checkID]['status'];
@@ -245,6 +244,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
                 }
             }
             // check hierarchic namespace replacement
+            $leaf = noNS(rtrim($checkID,':')).$leaf;
             $checkID = ($checkID == '::') ? false : ':'.getNS(trim($checkID,':')).':';
         } while ($checkID != false);
 
@@ -319,7 +319,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (empty($title)) {
                 $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
             }
-            $class = ($INFO['exists']) ? 'wikilink1' : 'wikilink2';
+            resolve_pageid(getNS($ID), $id, $exists);
+            $class = ($exists) ? 'wikilink1' : 'wikilink2';
             $link[$id] = '<a href="'.wl($id, array('redirect' => 'no')).'" rel="nofollow"'.
                          ' class="'.$class.'" title="'.$id.'">'.$title.'</a>';
         }
