@@ -12,7 +12,8 @@ require_once(DOKU_PLUGIN.'action.php');
  
 class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
-    protected $LogFile;
+    protected $LogFile;       // log file, see function _log_redirection
+    protected $debug = false; // enabled if DEBUG file exists in this plugin directory
 
     /**
      * Register event handlers
@@ -29,6 +30,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     function __construct() {
         global $conf;
         $this->LogFile  = $conf['cachedir'].'/redirection.log';
+        if (@file_exists(dirname(__FILE__).'/DEBUG')) $this->degug = true;
     }
 
 
@@ -105,13 +107,14 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     private function _foundInBreadcrumbs ($id) {
         list($page, $section) = explode('#', $id, 2);
 
-        if (isset($_SESSION[DOKU_COOKIE]['bc'])) {
-            $hist = $_SESSION[DOKU_COOKIE]['bc'];
-            if (array_key_exists($page, $_SESSION[DOKU_COOKIE]['bc'])) {
-                error_log('redirect to page['.$page.'] must halt due to prevent loop '."\n".
+        if (isset($_SESSION[DOKU_COOKIE]['bc']) && 
+            array_key_exists($page, $_SESSION[DOKU_COOKIE]['bc'])) {
+            if ($this->debug) {
+                $hist = $_SESSION[DOKU_COOKIE]['bc'];
+                error_log('redirect to page['.$page.'] must stop due to prevent loop '."\n".
                           'found in breadcrumbs = '.var_export($hist, true));
-                return true;
             }
+            return true;
         }
         return false;
     }
