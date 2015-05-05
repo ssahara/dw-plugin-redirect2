@@ -2,12 +2,12 @@
 
 Map old ID of pages or media files to new one. You can specify the redirect will be //permanent// (HTTP status 301) or //temporary// (302).
 
-  * The ID of page/media must be absolute and cleaned (no specialchars, all lowercase, full namespaces). Put '':'' in front of the ID for media, otherwise any ID are assumed for pages. (Optional info for experienced users) if the old ID is enclosed in ''%'' marks, a regular expression matching used instead of simple prefix matching.
-  * If the old ID ends '':'', all pages/media files under the given namespace will be redirected. You may also put '':'' to the end of new ID to keep page/media name in the new namespace.
+  * The origin ID of page/media or namecepaces must be absolute and cleaned (no specialchars, all lowercase, full namespaces). 
+  * Put '':'' in front of the ID for media, otherwise any ID are assumed for pages.
+  * If the origin ID ends '':'', all pages/media files under the given namespace will be redirected. You may also put '':'' to the end of destination ID to keep page/media name in the new namespace.
 
 <code text>
 # Example:
-301 pagename  ns:page#headline     # redirect permanently to the anchor in other page
-ns:somepage   http://example.com   # redirect to external url
-%^:ns1:(.*\.pdf)$%  :ns2:$1        # (RedirectMatch) based on a regular expression match
+301 pagename  ns:page#headline  # redirect permanently to the anchor in other page
+    :example.pdf  :ns:          # redirect of media file
 </code>
