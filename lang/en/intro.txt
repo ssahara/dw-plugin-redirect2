@@ -1,13 +1,12 @@
 ====== Redirect Configuration ======
 
-Map old ID of pages or media files to new one. You can specify the redirect will be //permanent// (HTTP status 301) or //temporary// (302).
-
-  * The origin ID of page/media or namecepaces must be absolute and cleaned (no specialchars, all lowercase, full namespaces). 
+  * You can specify the redirect will be //permanent// (HTTP status 301) or //temporary// (302).  The status value can be omitted assuming 302.
+  * The origin and destination ID must be absolute and cleaned (no specialchars, all lowercase, full namespaces).
   * Put '':'' in front of the ID for media, otherwise any ID are assumed for pages.
   * If the origin ID ends '':'', all pages/media files under the given namespace will be redirected. You may also put '':'' to the end of destination ID to keep page/media name in the new namespace.
 
 <code text>
-# Example:
+# (Example) rule format:  [Status] Origin Destination
 301 pagename  ns:page#headline  # redirect permanently to the anchor in other page
     :example.pdf  :ns:          # redirect of media file
 </code>
