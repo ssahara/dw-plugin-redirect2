@@ -36,6 +36,10 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * ErrorDocument404 - not found response
      * show 404 wiki page instead of inc/lang/<iso>/newpage.txt
      * TPL_CONTENT_DISPLAY:BEFORE event handler
+     *
+     * The code adopted from dokuwiki-plugin-notfound
+     * https://www.dokuwiki.org/plugin:notfound
+     * @author     Andreas Gohr <andi@splitbrain.org>
      */
      function errorDocument404(&$event, $param) {
         global $ACT, $ID, $INFO;
@@ -55,7 +59,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
 
 
     /**
-     * Get redirect URL, let redirection ready
+     * Get redirect destination URL
      * 
      * @param int $status  redirect status, 301 or 302
      * @param string $dest redirect destination, id or external url
