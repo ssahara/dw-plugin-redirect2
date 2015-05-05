@@ -42,7 +42,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         global $INPUT;
         $map = plugin_load('helper', $this->getPluginName());
 
-        if ($_POST['redirdata'] && checkSecurityToken()) {
+        if ($INPUT->post->str('redirdata') && checkSecurityToken()) {
             if (io_saveFile($map->ConfFile, cleanText($INPUT->str('redirdata')))) {
                 msg($this->getLang('saved'), 1);
             }
