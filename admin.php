@@ -86,8 +86,8 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             echo '<tr>';
             echo '<td>'.$data['count'].'</td>';
             echo '<td>'.$data['status'].'</td>';
-            echo '<td>'.hsc($id).'</td>';
-            echo '<td>'.urldecode($data['url']).'</td>';
+            echo '<td>'.$this->html_atag($id).'</td>';
+            echo '<td>'.$this->html_atag($data['dest']).'</td>';
             echo '<td>'.$data['last'].'</td>';
             echo '</tr>';
         }
@@ -110,22 +110,18 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
         foreach ($logfile as $line) {
             if ($line[0] == NULL) continue;
-            list($datetime, $caller, $status, $id, $url) = $line;
-            if (!isset($logData[$id])) {
-                $logData[$id] = array(
+            list($datetime, $caller, $status, $orig, $dest) = $line;
+            if (!isset($logData[$orig])) {
+                $logData[$orig] = array(
                         'count'  => 1,
                         'status' => $status,
-                        'url'    => $url,
+                        'dest'   => $dest,
                         'last'   => $datetime,
                 );
             } else {
-                $logData[$id]['count'] ++;
-                if ($datetime > $logData[$id]['last']) {
-                    $logData[$id]['last'] = $datetime;
-                }
-                if ($status == 404) {
-                    // set recent referer url
-                    $logData[$id]['url'] = $url;
+                $logData[$orig]['count'] ++;
+                if ($datetime > $logData[$orig]['last']) {
+                    $logData[$orig]['last'] = $datetime;
                 }
             }
         }
@@ -136,6 +132,44 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
 
     protected function compareCounts($a, $b) {
         return $b['count'] - $a['count'];
+    }
+
+
+    private function getLinkType($id) {
+        if (preg_match('@^(https?://|/)@', $id)) {
+           $type = 'external';
+        } else {
+            resolve_pageid(':', $id, $exists); // absolute id
+            list($ext, $mime) = mimetype($id);
+            if (substr($mime, 0, 5) == 'image') {
+                $type = 'image';
+            } elseif ($ext) {   // media
+                $type = 'media';
+            } else {            // page
+                $type = 'page';
+            }
+        }
+        return $type;
+    }
+
+    private function html_atag($id) {
+        $linkType = $this->getLinkType($id);
+        $more = array('redirect' => 'no');
+        switch ($linkType) {
+            case 'media':
+                $html = '<a href="'.ml($id, $more).'">';
+                $html.= hsc($id).'</a>';
+                break;
+            case 'page':
+                resolve_pageid(':', $id, $exists); // absolute id
+                $class = ($exists) ? 'wikilink1' : 'wikilink2';
+                $html = '<a href="'.wl($id, $more).'"'.
+                        ' class="'.$class.'">'.hsc($id).'</a>';
+                break;
+            default:
+                $html = hsc($id);
+        }
+        return $html;
     }
 
 }
