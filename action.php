@@ -64,11 +64,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Get redirect destination URL
      * 
      * @param int $status  redirect status, 301 or 302
-     * @param string $dest redirect destination, id or external url
+     * @param string $dest redirect destination, absolute id or external url
      * @return mixed       url of the destination page/media, or false
      */
     protected function getRedirectURL($status = 302, $dest) {
-        global $ID;
+        global $ID, $INFO;
 
         if (preg_match('@^(https?://|/)@', $dest)) {
             $url = $dest; // external url
@@ -77,12 +77,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if ($ext) {   // media
                 $url = ml($dest);
             } else {      // page
-                resolve_pageid(':', $dest, $exists);  // absolute namespace
                 list($page, $section) = explode('#', $dest, 2);
 
                 // check whether visit again using breadcrums trace
                 // Note: this does not completely eliminate redirect loop.
-                if ($this->_foundInBreadcrumbs($page)) {
+                if ($this->_foundInBreadcrumbs($page) && $INFO['exists']) {
                     $this->_show_message('redirect_halt', $ID, $page);
                     return false;
                 }
