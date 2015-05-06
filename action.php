@@ -80,7 +80,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (preg_match('@^(https?://|/)@', $dest)) {
                 $url = $dest; // external url
             } else {
-                resolve_pageid(getNS($ID), $dest, $exists);
+                resolve_pageid(':', $dest, $exists); // absolute pagename
                 list($ext, $mime) = mimetype($dest);
                 if ($ext) {   // media
                     $url = ml($dest);
@@ -326,7 +326,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
             if (empty($title)) {
                 $title = hsc(useHeading('navigation') ? p_get_first_heading($id) : $id);
             }
-            resolve_pageid(getNS($ID), $id, $exists);
+            resolve_pageid(':', $id, $exists); // absolute pagename
             $class = ($exists) ? 'wikilink1' : 'wikilink2';
             $link[$id] = '<a href="'.wl($id, array('redirect' => 'no')).'" rel="nofollow"'.
                          ' class="'.$class.'" title="'.$id.'">'.$title.'</a>';
