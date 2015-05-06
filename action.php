@@ -30,7 +30,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     function __construct() {
         global $conf;
         $this->LogFile  = $conf['cachedir'].'/redirection.log';
-        if (@file_exists(dirname(__FILE__).'/DEBUG')) $this->degug = true;
+        if (@file_exists(dirname(__FILE__).'/DEBUG')) $this->debug = true;
     }
 
 
