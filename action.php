@@ -70,31 +70,31 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     protected function getRedirectURL($status = 302, $dest) {
         global $ID;
 
-        // check whether visit again using breadcrums trace
-        // Note: this does not completely eliminate redirect loop.
-        if ($this->_foundInBreadcrumbs(cleanID($dest))) {
-            $this->_show_message('redirect_halt', $ID, $dest);
-            return false;
+        if (preg_match('@^(https?://|/)@', $dest)) {
+            $url = $dest; // external url
         } else {
-            // generate url
-            if (preg_match('@^(https?://|/)@', $dest)) {
-                $url = $dest; // external url
-            } else {
-                resolve_pageid(':', $dest, $exists); // absolute pagename
-                list($ext, $mime) = mimetype($dest);
-                if ($ext) {   // media
-                    $url = ml($dest);
-                } else {      // page
-                    list($page, $section) = explode('#', $dest, 2);
-                    $url = wl($page);
-                    if (!empty($section)) $url.= '#'.rawurlencode($section);
+            list($ext, $mime) = mimetype($dest);
+            if ($ext) {   // media
+                $url = ml($dest);
+            } else {      // page
+                resolve_pageid(':', $dest, $exists);  // absolute namespace
+                list($page, $section) = explode('#', $dest, 2);
 
-                    // output message, to be shown at destination page (after redirect)
-                    $this->_show_message('redirected_from', $ID, $dest, $status);
+                // check whether visit again using breadcrums trace
+                // Note: this does not completely eliminate redirect loop.
+                if ($this->_foundInBreadcrumbs($page)) {
+                    $this->_show_message('redirect_halt', $ID, $page);
+                    return false;
                 }
+
+                $url = wl($page);
+                if (!empty($section)) $url.= '#'.rawurlencode($section);
+
+                // output message, to be shown at destination page (after redirect)
+                $this->_show_message('redirected_from', $ID, $dest, $status);
             }
-            return $url;
         }
+        return $url;
     }
 
     /**
