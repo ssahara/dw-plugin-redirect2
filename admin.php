@@ -86,8 +86,8 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             echo '<tr>';
             echo '<td>'.$data['count'].'</td>';
             echo '<td>'.$data['status'].'</td>';
-            echo '<td>'.$this->html_atag($id).'</td>';
-            echo '<td>'.$this->html_atag($data['dest']).'</td>';
+            echo '<td>'.$this->html_atag($data['caller'], $id).'</td>';
+            echo '<td>'.$this->html_atag($data['caller'], $data['dest']).'</td>';
             echo '<td>'.$data['last'].'</td>';
             echo '</tr>';
         }
@@ -114,6 +114,7 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
             if (!isset($logData[$orig])) {
                 $logData[$orig] = array(
                         'count'  => 1,
+                        'caller' => $caller,
                         'status' => $status,
                         'dest'   => $dest,
                         'last'   => $datetime,
@@ -134,37 +135,24 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         return $b['count'] - $a['count'];
     }
 
+    private function html_atag($caller, $id) {
 
-    private function getLinkType($id) {
         if (preg_match('@^(https?://|/)@', $id)) {
-           $type = 'external';
+            $linkType = 'external';
+        } elseif ($caller == 'redirectMedia') {
+            $linkType = 'media';
         } else {
-            resolve_pageid(':', $id, $exists); // absolute id
-            list($ext, $mime) = mimetype($id);
-            if (substr($mime, 0, 5) == 'image') {
-                $type = 'image';
-            } elseif ($ext) {   // media
-                $type = 'media';
-            } else {            // page
-                $type = 'page';
-            }
+            $linkType = 'page';
         }
-        return $type;
-    }
-
-    private function html_atag($id) {
-        $linkType = $this->getLinkType($id);
-        $more = array('redirect' => 'no');
+        $format = 'xhtml';
         switch ($linkType) {
             case 'media':
-                $html = '<a href="'.ml($id, $more).'">';
-                $html.= hsc($id).'</a>';
+                $link = '{{:'.$id.'?linkonly|'.$id.'}}';
+                $html = strip_tags(p_render($format, p_get_instructions($link), $info), '<a>');
                 break;
             case 'page':
-                resolve_pageid(':', $id, $exists); // absolute id
-                $class = ($exists) ? 'wikilink1' : 'wikilink2';
-                $html = '<a href="'.wl($id, $more).'"'.
-                        ' class="'.$class.'">'.hsc($id).'</a>';
+                $link = '[[:'.$id.'|'.$id.']]';
+                $html = strip_tags(p_render($format, p_get_instructions($link), $info), '<a>');
                 break;
             default:
                 $html = hsc($id);
