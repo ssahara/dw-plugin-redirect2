@@ -128,6 +128,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
         global $ID, $ACT, $REV, $INPUT;
 
         if (($ACT != 'show' && $ACT != '') || $REV) return;
+        if (!plugin_isdisabled('pageredirect')) return;
 
         // return if no redirection data
         $id = p_get_metadata($ID,'relation isreplacedby');
