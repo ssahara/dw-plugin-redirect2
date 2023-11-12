@@ -5,17 +5,12 @@
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
  */
-// must be run within Dokuwiki
-if(!defined('DOKU_INC')) die();
-
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'admin.php');
-
-class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
-
+class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin
+{
     protected $LogFile;
 
-    function __construct() {
+    function __construct()
+    {
         global $conf;
         $this->LogFile = $conf['cachedir'].'/redirection.log';
     }
@@ -38,7 +33,8 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
     /**
      * handle user request
      */
-    function handle() {
+    public function handle()
+    {
         global $INPUT;
         $map = plugin_load('helper', $this->getPluginName());
 
@@ -52,7 +48,8 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
     /**
      * output appropriate html
      */
-    function html() {
+    public function html()
+    {
         global $lang;
         $map = plugin_load('helper', $this->getPluginName());
 
@@ -100,7 +97,8 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
     /**
      * Load redierction data from log file
      */
-    protected function getLogData() {
+    protected function getLogData()
+    {
         $logData = array();
         if (!file_exists($this->LogFile)) return $logData;
 
@@ -131,12 +129,13 @@ class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin {
         return $logData;
     }
 
-    protected function compareCounts($a, $b) {
+    protected function compareCounts($a, $b)
+    {
         return $b['count'] - $a['count'];
     }
 
-    private function html_atag($caller, $id) {
-
+    private function html_atag($caller, $id)
+    {
         if (preg_match('@^(https?://|/)@', $id)) {
             $linkType = 'external';
         } elseif ($caller == 'redirectMedia') {

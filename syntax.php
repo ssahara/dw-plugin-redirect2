@@ -8,12 +8,8 @@
  * @author  Elan Ruusamäe <glen@delfi.ee>
  * @author  David Lorentsen <zyberdog@quakenet.org>
  */
-
-// must be run within Dokuwiki
-if (!defined('DOKU_INC')) die();
-
-class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
-
+class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin
+{
     public function getType() { return 'substition'; }
     public function getPType() { return 'block'; }
     public function getSort() { return 1; }
@@ -23,7 +19,8 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
      *
      * @param string $mode Parser mode
      */
-    public function connectTo($mode) {
+    public function connectTo($mode)
+    {
         if (plugin_isdisabled('pageredirect')) {
             $this->Lexer->addSpecialPattern('~~REDIRECT>.+?~~',
                 $mode, substr(get_class($this), 7) );
@@ -41,7 +38,8 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
      * @param   Doku_Handler $handler Reference to the Doku_Handler object
      * @return  array Return an array with all data you want to use in render
      */
-    public function handle($match, $state, $pos, Doku_Handler $handler){
+    public function handle($match, $state, $pos, Doku_Handler $handler)
+    {
         // extract target page from match pattern
         if ($match[0] == '#') {     // #REDIRECT PAGE
             $page = substr(ltrim($match), 10);
@@ -72,7 +70,8 @@ class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin {
      * @param   $data     array         data created by handler()
      * @return  boolean                 rendered correctly?
      */
-    public function render($format, Doku_Renderer $renderer, $data) {
+    public function render($format, Doku_Renderer $renderer, $data)
+    {
         if ($format == 'xhtml') {
             // add prepared note about redirection
             $renderer->doc .= $data[1];

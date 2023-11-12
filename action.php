@@ -5,29 +5,24 @@
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
  */
- 
-if(!defined('DOKU_INC')) die();
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'action.php');
- 
-class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
-
+class action_plugin_redirect2 extends DokuWiki_Action_Plugin
+{
     protected $LogFile;       // log file, see function _log_redirection
     protected $debug = false; // enabled if DEBUG file exists in this plugin directory
 
     /**
      * Register event handlers
      */
-    function register(Doku_Event_Handler $controller) {
-
+    public function register(Doku_Event_Handler $controller)
+    {
         $controller->register_hook('DOKUWIKI_STARTED', 'BEFORE',    $this, 'handleReplacedBy');
         $controller->register_hook('ACTION_HEADERS_SEND', 'BEFORE', $this, 'redirectPage');
         $controller->register_hook('FETCH_MEDIA_STATUS', 'BEFORE',  $this, 'redirectMedia');
         $controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, 'errorDocument404');
-
     }
 
-    function __construct() {
+    public function __construct()
+    {
         global $conf;
         $this->LogFile  = $conf['cachedir'].'/redirection.log';
         if (@file_exists(dirname(__FILE__).'/DEBUG')) $this->debug = true;
@@ -43,7 +38,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * https://www.dokuwiki.org/plugin:notfound
      * @author     Andreas Gohr <andi@splitbrain.org>
      */
-     function errorDocument404(&$event, $param) {
+     public function errorDocument404(&$event, $param)
+     {
         global $ACT, $ID, $INFO;
 
          if ( $INFO['exists'] || ($ACT != 'show') ) return false;
@@ -67,7 +63,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $dest redirect destination, absolute id or external url
      * @return mixed       url of the destination page/media, or false
      */
-    protected function getRedirectURL($status = 302, $dest) {
+    protected function getRedirectURL($status = 302, $dest)
+    {
         global $ID, $INFO;
 
         if (preg_match('@^(https?://|/)@', $dest)) {
@@ -103,7 +100,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $id  absolute page name (id)
      * @return bool  true if id (of the page) found in breadcrumbs
      */
-    private function _foundInBreadcrumbs ($id) {
+    private function _foundInBreadcrumbs ($id)
+    {
         list($page, $section) = explode('#', $id, 2);
 
         if (isset($_SESSION[DOKU_COOKIE]['bc']) && 
@@ -124,7 +122,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * that is set by syntax component
      * DOKUWIKI_STARTED:BEFORE event handler
      */
-    function handleReplacedBy(&$event, $param) {
+    function handleReplacedBy(&$event, $param)
+    {
         global $ID, $ACT, $REV, $INPUT;
 
         if (($ACT != 'show' && $ACT != '') || $REV) return;
@@ -155,10 +154,11 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * Redirection of pages based on redirect.conf file
      * ACTION_HEADERS_SEND:BEFORE event handler
      */
-    function redirectPage(&$event, $param){
+    function redirectPage(&$event, $param)
+    {
         global $ACT, $ID, $INPUT;
 
-        if( !($ACT == 'show' || (!is_array($ACT) && substr($ACT, 0, 7) == 'export_')) ) return;
+        if (!($ACT == 'show' || (!is_array($ACT) && substr($ACT, 0, 7) == 'export_')) ) return;
 
         // return if redirection is temporarily disabled by url paramter
         if ($INPUT->str('redirect',NULL) == 'no') return;
@@ -221,8 +221,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * FETCH_MEDIA_STATUS event handler
      * @see also https://www.dokuwiki.org/devel:event:fetch_media_status
      */
-    function redirectMedia(&$event, $param) {
-
+    function redirectMedia(&$event, $param)
+    {
         // read redirect map
         $map = $this->loadHelper($this->getPluginName());
         if (empty($map)) return false;
@@ -288,7 +288,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param array $map       redirect map
      * @return array of status and destination (id), or false if no matched
      */
-    protected function _RedirectMatch( $checkID, $map ) {
+    protected function _RedirectMatch( $checkID, $map )
+    {
         foreach ($map->pattern as $pattern => $data) {
             if (preg_match('/^%.*%$/', $pattern) !== 1) continue;
             $destID = preg_replace( $pattern, $data['destination'], $checkID, -1, $count);
@@ -310,7 +311,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
      * @param string $dest     page id of redirect destination
      * @param int    $status   http status of the redirection
      */
-    protected function _show_message($format, $orig=NULL, $dest=NULL, $status=302) {
+    protected function _show_message($format, $orig=NULL, $dest=NULL, $status=302)
+    {
         global $ID, $INFO, $INPUT;
 
         // check who can see the message
@@ -355,7 +357,8 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin {
     /**
      * Logging of redirection
      */
-    protected function _log_redirection($status, $orig, $dest='') {
+    protected function _log_redirection($status, $orig, $dest='')
+    {
         if (!$this->getConf('logging')) return;
 
         $dbg = debug_backtrace();

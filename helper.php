@@ -5,11 +5,8 @@
  * @license GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author Satoshi Sahara <sahara.satoshi@gmail.com>
  */
-// must be run within Dokuwiki
-if(!defined('DOKU_INC')) die();
-
-class helper_plugin_redirect2 extends DokuWiki_Plugin {
-
+class helper_plugin_redirect2 extends DokuWiki_Plugin
+{
     public $ConfFile; // path/to/redirection config file
     public $pattern = NULL;
 
@@ -24,7 +21,8 @@ class helper_plugin_redirect2 extends DokuWiki_Plugin {
      *  ptnDestination: new id pattern of page or media
      *
      */
-    function __construct() {
+    public function __construct()
+    {
         $this->ConfFile = DOKU_CONF.'redirect.conf';
 
         if ($this->pattern != NULL) return;
@@ -42,11 +40,13 @@ class helper_plugin_redirect2 extends DokuWiki_Plugin {
         }
     }
 
-    function __destruct() {
+    public function __destruct()
+    {
         $this->pattern = NULL;
     }
 
-    protected function _loadConfig() {
+    protected function _loadConfig()
+    {
         if (!file_exists($this->ConfFile)) return false;
 
         $lines = @file($this->ConfFile);
