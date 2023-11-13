@@ -1,6 +1,7 @@
 <?php
 
 use dokuwiki\Extension\Plugin;
+use dokuwiki\Cache\Cache;
 
 /**
  * Redirect2 - DokuWiki Redirect Manager
@@ -30,7 +31,7 @@ class helper_plugin_redirect2 extends Plugin
 
         if ($this->pattern != NULL) return;
 
-        $cache = new cache('##redirect2##','.conf');
+        $cache = new Cache('##redirect2##', '.conf');
         $depends = array('files' => array($this->ConfFile));
 
         if ($cache->useCache($depends)) {
