@@ -1,11 +1,14 @@
 <?php
+
+use dokuwiki\Extension\AdminPlugin;
+
 /**
  * Redirect2 - DokuWiki Redirect Manager
  * 
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
  */
-class admin_plugin_redirect2 extends DokuWiki_Admin_Plugin
+class admin_plugin_redirect2 extends AdminPlugin
 {
     protected $LogFile;
 

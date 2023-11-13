@@ -1,11 +1,16 @@
 <?php
+
+use dokuwiki\Extension\ActionPlugin;
+use dokuwiki\Extension\EventHandler;
+use dokuwiki\Extension\Event;
+
 /**
  * Redirect2 - DokuWiki Redirect Manager
  * 
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Satoshi Sahara <sahara.satoshi@gmail.com>
  */
-class action_plugin_redirect2 extends DokuWiki_Action_Plugin
+class action_plugin_redirect2 extends ActionPlugin
 {
     protected $LogFile;       // log file, see function _log_redirection
     protected $debug = false; // enabled if DEBUG file exists in this plugin directory
@@ -13,7 +18,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin
     /**
      * Register event handlers
      */
-    public function register(Doku_Event_Handler $controller)
+    public function register(EventHandler $controller)
     {
         $controller->register_hook('DOKUWIKI_STARTED', 'BEFORE',    $this, 'handleReplacedBy');
         $controller->register_hook('ACTION_HEADERS_SEND', 'BEFORE', $this, 'redirectPage');
@@ -38,7 +43,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin
      * https://www.dokuwiki.org/plugin:notfound
      * @author     Andreas Gohr <andi@splitbrain.org>
      */
-     public function errorDocument404(&$event, $param)
+     public function errorDocument404(Event $event, $param)
      {
         global $ACT, $ID, $INFO;
 
@@ -122,7 +127,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin
      * that is set by syntax component
      * DOKUWIKI_STARTED:BEFORE event handler
      */
-    function handleReplacedBy(&$event, $param)
+    function handleReplacedBy(Event $event, $param)
     {
         global $ID, $ACT, $REV, $INPUT;
 
@@ -154,7 +159,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin
      * Redirection of pages based on redirect.conf file
      * ACTION_HEADERS_SEND:BEFORE event handler
      */
-    function redirectPage(&$event, $param)
+    function redirectPage(Event $event, $param)
     {
         global $ACT, $ID, $INPUT;
 
@@ -221,7 +226,7 @@ class action_plugin_redirect2 extends DokuWiki_Action_Plugin
      * FETCH_MEDIA_STATUS event handler
      * @see also https://www.dokuwiki.org/devel:event:fetch_media_status
      */
-    function redirectMedia(&$event, $param)
+    function redirectMedia(Event $event, $param)
     {
         // read redirect map
         $map = $this->loadHelper($this->getPluginName());

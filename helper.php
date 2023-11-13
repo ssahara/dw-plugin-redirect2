@@ -1,11 +1,14 @@
 <?php
+
+use dokuwiki\Extension\Plugin;
+
 /**
  * Redirect2 - DokuWiki Redirect Manager
  *
  * @license GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author Satoshi Sahara <sahara.satoshi@gmail.com>
  */
-class helper_plugin_redirect2 extends DokuWiki_Plugin
+class helper_plugin_redirect2 extends Plugin
 {
     public $ConfFile; // path/to/redirection config file
     public $pattern = NULL;

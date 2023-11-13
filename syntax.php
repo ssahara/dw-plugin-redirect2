@@ -1,4 +1,7 @@
 <?php
+
+use dokuwiki\Extension\SyntaxPlugin;
+
 /**
  * Redirect2 - DokuWiki Redirect Manager
  *
@@ -8,7 +11,7 @@
  * @author  Elan Ruusamäe <glen@delfi.ee>
  * @author  David Lorentsen <zyberdog@quakenet.org>
  */
-class syntax_plugin_redirect2 extends DokuWiki_Syntax_Plugin
+class syntax_plugin_redirect2 extends SyntaxPlugin
 {
     public function getType() { return 'substition'; }
     public function getPType() { return 'block'; }
